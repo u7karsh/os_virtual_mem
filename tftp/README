@@ -1,0 +1,41 @@
+# Place these files in directory /srv/tftp on the Linux VM used
+# for development.  Then read the following and copy this file
+# into place.
+#
+# To make grub work, configure a DHCP server and place a copy
+# of this file in:
+#
+#	/etc/dhcp.conf
+#
+# The idea is that when a VM starts, it uses PXE boot to get a
+# DHCP address, and is given the file name "xinu.grub" as part
+# of the DCHP response.  The PXE boot process downloads and
+# runs the file, which contains the grub program with a built-in
+# startup script.  The script specifies that grub should download
+# and run file xinu.boot (from the same TFTP server that was used
+# for the PCE boot).  Xinu is placed in file xinu.boot, which means
+# grub will start Xinu.
+#
+# You may delete this commentary or leave it because DHCP
+# will ignore lines that start with pound sign and blank
+# lines.
+
+#
+# Sample configuration file for ISC dhcpd for Debian
+#
+#
+
+default-lease-time 600;
+max-lease-time 7200;
+log-facility local7;
+
+subnet 192.168.201.0 netmask 255.255.255.0 {
+  next-server 192.168.201.1;
+  range 192.168.201.100 192.168.201.120;
+  filename "xinu.grub";
+}
+
+############# Utkarsh Notes
+ln -s ~/git/ece592_os/tftp/ ~/.config/VirtualBox/TFTP
+Attached to NAT
+

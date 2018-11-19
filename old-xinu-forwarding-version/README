@@ -1,0 +1,28 @@
+This is an older version of Xinu.  However, it contains a clever
+network interface that one to experiment by building an IP router.
+It was designed to be the platform in a graduate networking course.
+The trick is to use a single Ethernet, but to choose multicast
+addresses to make the network appear to consist of three independent
+networks: the Ethernet itself, which is connected to the outside
+world, and two "othernets" that can contain host computers but only
+connect to the outside through a router.
+
+We used this code on a lab network shared by many students.  Each
+was assigned an ID, and the IDs are used in the multicast addresses
+to permit many sets of "othernets" to operate simultaneously without
+interference.  On Vbox, there will probably only be one set, but
+you need to specify an ID when a system boots.  Just enter 1.
+
+After entering an ID, you will be asked to configure a VM as a
+host or router.  When confguring a host, you must choose a
+"network" - 0 is the actual Ethernet, 1 or 2 is use for the two
+"othernets".  The router code supplied with the distribution
+performs the nat function (it handles UDP and ICMP ping packets).
+Thus, a host on an othernet can ping an arbitrary Internet site,
+even though the host is assigned a non-routable IP address.
+For example, the date command sends UDP to a time server at
+Purdue (you can recompile the code with another IP address and
+recompile if you choose).
+
+For more details see files NOTES; file STRUCTURE gives the overall
+structure of the network modules.
