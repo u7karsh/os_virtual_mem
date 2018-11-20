@@ -3,8 +3,8 @@
 #include <xinu.h>
 #include <stdio.h>
 
-/*#define STKTRACE*/
-/*#define REGDUMP*/
+#define STKTRACE
+#define REGDUMP
 
 /*
  * The girmask is used as a mask for interrupts that don't have a

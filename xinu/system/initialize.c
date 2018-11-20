@@ -222,6 +222,9 @@ static	void	sysinit()
 	for (i = 0; i < NDEVS; i++) {
 		init(i);
 	}
+
+   /* Initialize paging */
+   page_init();
 	return;
 }
 

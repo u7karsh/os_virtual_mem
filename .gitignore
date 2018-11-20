@@ -1,0 +1,50 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Auto-gen files
+icache.h
+
+# ova 
+*.ova
+
+
+tftp/xinu.boot
+*.defs
+*.vers_num
+*version
+*xinu.elf
+*xinu.map
+*conf.h
+*conf.c
+*config
+*xinu.map

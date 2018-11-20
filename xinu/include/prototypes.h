@@ -35,6 +35,12 @@ extern	void	clkinit(void);
 /* in file clkdisp.S */
 extern	void	clkdisp(void);
 
+/* in file pagefault_handler.c */
+extern	void	page_init(void);
+
+/* in file pagefault_handler_disp.S */
+extern	void	pagefault_handler_disp(void);
+
 /* in file close.c */
 extern	syscall	close(did32);
 
