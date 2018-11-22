@@ -41,8 +41,8 @@ void printmem(struct	memblk	*_memptr, char* name){
    }
    kprintf("%10d bytes of free memory.  %s:\n", free_mem, name);
    for (memptr = _memptr; memptr != NULL; memptr = memptr->mnext) {
-      kprintf("           [0x%08X to 0x%08X (%d bytes)]\n",
-            (uint32)memptr, ((uint32)memptr) + memptr->mlength - 1, memptr->mlength);
+      kprintf("           [0x%08X to 0x%08X]\n",
+            (uint32)memptr, ((uint32)memptr) + memptr->mlength - 1);
    }
 }
 
@@ -154,6 +154,7 @@ static	void	sysinit()
 	int32	i;
 	struct	procent	*prptr;		/* Ptr to process table entry	*/
 	struct	sentry	*semptr;	/* Ptr to semaphore table entry	*/
+   pdbr_t null_pdbr;
 
 	/* Reset the console */
 
@@ -167,6 +168,9 @@ static	void	sysinit()
 	/* Initialize free memory list */
 	
 	meminit();
+
+   /* Initialize paging */
+   init_paging();
 
 	/* Initialize system variables */
 
@@ -198,6 +202,11 @@ static	void	sysinit()
 	prptr->prstklen = NULLSTK;
 	prptr->prstkptr = 0;
 	currpid = NULLPROC;
+
+   // Add paging to NULL proc
+   null_pdbr = create_pdbr();
+   write_cr3(*((unsigned int*)&null_pdbr));
+   kprintf("0 => %08X (%08X)\n", null_pdbr, null_pdbr.pdbr_base);
 	
 	/* Initialize semaphores */
 
@@ -229,8 +238,6 @@ static	void	sysinit()
 		init(i);
 	}
 
-   /* Initialize paging */
-   init_paging();
 	return;
 }
 

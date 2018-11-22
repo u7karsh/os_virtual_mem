@@ -145,11 +145,33 @@ local syscall	_freemem(
 }
 
 char *getpdptframe(){
-   return _getfreemem(&pdptlist, PAGE_SIZE);
+   uint32 frame;
+   frame = (uint32)_getfreemem(&pdptlist, PAGE_SIZE);
+
+   // Align it
+   frame >>= 12;
+   
+   kprintf("Frame: %08X\n", frame);
+   return (char *)frame;
 }
 
-syscall freepdptframe(char *blkaddr){
+syscall freepdptframe(char *frame){
+   char *blkaddr = ((uint32) frame) << 12;
    return _freemem(&pdptlist, blkaddr, PAGE_SIZE, minpdpt, maxpdpt);
+}
+
+pdbr_t create_pdbr(){
+   pdbr_t pdbr;
+
+   pdbr.pdbr_mb1   = 1;
+   pdbr.pdbr_rsvd  = 0;
+   pdbr.pdbr_pwt   = 0;
+   pdbr.pdbr_pcd   = 0;
+   pdbr.pdbr_rsvd2 = 0;
+   pdbr.pdbr_avail = 0;
+   pdbr.pdbr_base  = (unsigned long)getpdptframe();
+
+   return pdbr;
 }
 
 void init_paging(){

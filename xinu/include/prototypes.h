@@ -619,6 +619,9 @@ extern	syscall	freepdptframe(char *);
 /* in file paging.c */
 extern	void	init_paging(void);
 
+/* in file paging.c */
+extern	pdbr_t	create_pdbr(void);
+
 /* NETWORK BYTE ORDER CONVERSION NOT NEEDED ON A BIG-ENDIAN COMPUTER */
 #define	htons(x)  ((0xff & ((x)>>8)) | ((0xff & (x)) << 8))
 #define	htonl(x)  ((((x)>>24) & 0x000000ff) | (((x)>> 8) & 0x0000ff00) | \

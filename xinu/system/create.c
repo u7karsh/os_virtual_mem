@@ -24,6 +24,7 @@ pid32	create(
 	int32		i;
 	uint32		*a;		/* Points to list of args	*/
 	uint32		*saddr;		/* Stack address		*/
+   pdbr_t pdbr;
 
 	mask = disable();
 	if (ssize < MINSTK)
@@ -92,6 +93,13 @@ pid32	create(
 	*--saddr = savsp;		/* %ebp (while finishing ctxsw)	*/
 	*--saddr = 0;			/* %esi */
 	*--saddr = 0;			/* %edi */
+
+   /* The following is required to support paging */
+   pdbr            = create_pdbr();
+
+	*--saddr = *((unsigned int*)&pdbr);		/* %pdbr */
+
+   kprintf("%d => %08X (%08X)\n", pid, pdbr, pdbr.pdbr_base);
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
 	restore(mask);
 	return pid;

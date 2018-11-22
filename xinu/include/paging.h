@@ -49,6 +49,16 @@ typedef struct{
   unsigned int fm_num : 20;		/* frame number			*/
 } phy_addr_t;
 
+typedef struct {
+  unsigned int pdbr_mb1	: 1;		/* must be one */
+  unsigned int pdbr_rsvd : 2;		/* reserved (=0) */
+  unsigned int pdbr_pwt	: 1;		   /* write through cachine for pt?*/
+  unsigned int pdbr_pcd	: 1;		   /* cache disable for this pt?	*/
+  unsigned int pdbr_rsvd2	: 4;		/* reserved (=0) */
+  unsigned int pdbr_avail : 3;		/* for programmer's use		*/
+  unsigned int pdbr_base	: 20;		/* location of page directory?	*/
+} pdbr_t;
+
 /* Macros */
 
 #define PAGE_SIZE       4096    /* number of bytes per page		 		 */

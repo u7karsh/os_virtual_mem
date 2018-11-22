@@ -37,6 +37,8 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
 	/* Force context switch to highest priority ready process */
 
+   uint32 pdbr = read_cr3();
+   kprintf("ctxsw: %d %08X (%08X)\n", currpid, pdbr, pdbr >> 12 );
 	currpid = dequeue(readylist);
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
