@@ -35,9 +35,6 @@ extern	void	clkinit(void);
 /* in file clkdisp.S */
 extern	void	clkdisp(void);
 
-/* in file pagefault_handler.c */
-extern	void	page_init(void);
-
 /* in file pagefault_handler_disp.S */
 extern	void	pagefault_handler_disp(void);
 
@@ -612,6 +609,15 @@ extern	void	xdone(void);
 
 /* in file yield.c */
 extern	syscall	yield(void);
+
+/* in file paging.c */
+extern	char *getpdptframe();
+
+/* in file paging.c */
+extern	syscall	freepdptframe(char *);
+
+/* in file paging.c */
+extern	void	init_paging(void);
 
 /* NETWORK BYTE ORDER CONVERSION NOT NEEDED ON A BIG-ENDIAN COMPUTER */
 #define	htons(x)  ((0xff & ((x)>>8)) | ((0xff & (x)) << 8))

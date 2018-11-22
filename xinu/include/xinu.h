@@ -34,6 +34,7 @@
 #include <prototypes.h>
 #include <delay.h>
 #include <i386.h>
+#include <paging.h>
 #include <pci.h>
 #include <e1000e.h>
 #include <quark_pdat.h>

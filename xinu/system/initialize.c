@@ -20,6 +20,7 @@ local	process startup(void);	/* Process to finish startup tasks	*/
 struct	procent	proctab[NPROC];	/* Process table			*/
 struct	sentry	semtab[NSEM];	/* Semaphore table			*/
 struct	memblk	memlist;	/* List of free memory blocks		*/
+struct	memblk	pdptlist;	/* Head of ffs list	*/
 
 /* Active system status */
 
@@ -29,6 +30,21 @@ pid32	currpid;		/* ID of currently executing process	*/
 /* Control sequence to reset the console colors and cusor positiion	*/
 
 #define	CONSOLE_RESET	" \033[0m\033[2J\033[;H"
+
+void printmem(struct	memblk	*_memptr, char* name){
+	uint32	free_mem;		/* Total amount of free memory	*/
+   struct	memblk	*memptr;
+
+   free_mem = 0;
+   for (memptr = _memptr; memptr != NULL; memptr = memptr->mnext) {
+      free_mem += memptr->mlength;
+   }
+   kprintf("%10d bytes of free memory.  %s:\n", free_mem, name);
+   for (memptr = _memptr; memptr != NULL; memptr = memptr->mnext) {
+      kprintf("           [0x%08X to 0x%08X (%d bytes)]\n",
+            (uint32)memptr, ((uint32)memptr) + memptr->mlength - 1, memptr->mlength);
+   }
+}
 
 /*------------------------------------------------------------------------
  * nulluser - initialize the system and become the null process
@@ -46,24 +62,14 @@ pid32	currpid;		/* ID of currently executing process	*/
 
 void	nulluser()
 {	
-	struct	memblk	*memptr;	/* Ptr to memory block		*/
-	uint32	free_mem;		/* Total amount of free memory	*/
 	
 	/* Initialize the system */
 
 	sysinit();
 
 	/* Output Xinu memory layout */
-	free_mem = 0;
-	for (memptr = memlist.mnext; memptr != NULL;
-						memptr = memptr->mnext) {
-		free_mem += memptr->mlength;
-	}
-	kprintf("%10d bytes of free memory.  Free list:\n", free_mem);
-	for (memptr=memlist.mnext; memptr!=NULL;memptr = memptr->mnext) {
-	    kprintf("           [0x%08X to 0x%08X]\n",
-		(uint32)memptr, ((uint32)memptr) + memptr->mlength - 1);
-	}
+   printmem(pdptlist.mnext, "PD/PT List");
+   printmem(memlist.mnext, "Free List");
 
 	kprintf("%10d bytes of Xinu code.\n",
 		(uint32)&etext - (uint32)&text);
@@ -224,7 +230,7 @@ static	void	sysinit()
 	}
 
    /* Initialize paging */
-   page_init();
+   init_paging();
 	return;
 }
 
