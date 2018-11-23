@@ -92,6 +92,7 @@ void	nulluser()
 
 	resume(create((void *)startup, INITSTK, INITPRIO,
 					"Startup process", 0, NULL));
+   kprintf("chk1\n");
 
 	/* Become the Null process (i.e., guarantee that the CPU has	*/
 	/*  something to run when no other process is ready to execute)	*/
@@ -204,9 +205,9 @@ static	void	sysinit()
 	currpid = NULLPROC;
 
    // Add paging to NULL proc
-   null_pdbr = create_pdbr();
+   null_pdbr = create_directory();
    write_cr3(*((unsigned int*)&null_pdbr));
-   kprintf("0 => %08X (%08X)\n", null_pdbr, null_pdbr.pdbr_base);
+   print_directory(read_cr3());
 	
 	/* Initialize semaphores */
 
@@ -237,6 +238,9 @@ static	void	sysinit()
 	for (i = 0; i < NDEVS; i++) {
 		init(i);
 	}
+
+   // Enable paging
+   enable_paging();
 
 	return;
 }

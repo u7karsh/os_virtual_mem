@@ -611,16 +611,26 @@ extern	void	xdone(void);
 extern	syscall	yield(void);
 
 /* in file paging.c */
-extern	char *getpdptframe();
+extern	uint32 getpdptframe();
 
 /* in file paging.c */
-extern	syscall	freepdptframe(char *);
+extern	syscall	freepdptframe(uint32);
 
 /* in file paging.c */
 extern	void	init_paging(void);
 
 /* in file paging.c */
-extern	pdbr_t	create_pdbr(void);
+extern	pdbr_t	create_directory(void);
+extern	void     destroy_directory(pdbr_t);
+
+extern unsigned long read_cr0(void);
+extern unsigned long read_cr2(void);
+extern unsigned long read_cr3(void);
+extern unsigned long read_cr4(void);
+extern void write_cr0(unsigned long);
+extern void write_cr3(unsigned long);
+extern void write_cr4(unsigned long);
+extern void enable_paging();
 
 /* NETWORK BYTE ORDER CONVERSION NOT NEEDED ON A BIG-ENDIAN COMPUTER */
 #define	htons(x)  ((0xff & ((x)>>8)) | ((0xff & (x)) << 8))

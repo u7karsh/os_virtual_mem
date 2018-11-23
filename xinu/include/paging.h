@@ -62,6 +62,7 @@ typedef struct {
 /* Macros */
 
 #define PAGE_SIZE       4096    /* number of bytes per page		 		 */
+#define PAGE_OFFSET_BITS 12
 #define MAX_HEAP_SIZE   4096    /* max number of frames for virtual heap		 */
 #define MAX_SWAP_SIZE   4096    /* size of swap space (in frames) 			 */
 #define MAX_FSS_SIZE    2048    /* size of FSS space  (in frames)			 */

@@ -95,11 +95,12 @@ pid32	create(
 	*--saddr = 0;			/* %edi */
 
    /* The following is required to support paging */
-   pdbr            = create_pdbr();
+   pdbr            = create_directory();
+   kprintf("proc: %d\n", pid);
+   print_directory(pdbr);
 
 	*--saddr = *((unsigned int*)&pdbr);		/* %pdbr */
 
-   kprintf("%d => %08X (%08X)\n", pid, pdbr, pdbr.pdbr_base);
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
 	restore(mask);
 	return pid;

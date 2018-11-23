@@ -7,4 +7,6 @@
  *------------------------------------------------------------------------
  */
 void	pagefault_handler(){
+   kprintf("PAGE FAULT!!! %d %d\n", read_cr3(), currpid);
+   halt();
 }

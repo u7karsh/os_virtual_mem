@@ -13,7 +13,6 @@ syscall	kill(
 	intmask	mask;			/* Saved interrupt mask		*/
 	struct	procent *prptr;		/* Ptr to process's table entry	*/
 	int32	i;			/* Index into descriptors	*/
-   pdbr_t pdbr;
    uint32 cr3;
 
 	mask = disable();
@@ -34,8 +33,7 @@ syscall	kill(
 	freestk(prptr->prstkbase, prptr->prstklen);
 
    cr3  = read_cr3();
-   pdbr = *((pdbr_t*)&cr3);
-   freepdptframe(pdbr.pdbr_base);
+   destroy_directory(*((pdbr_t*)&cr3));
 
 	switch (prptr->prstate) {
 	case PR_CURR:
