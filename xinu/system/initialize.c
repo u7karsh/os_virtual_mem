@@ -20,7 +20,8 @@ local	process startup(void);	/* Process to finish startup tasks	*/
 struct	procent	proctab[NPROC];	/* Process table			*/
 struct	sentry	semtab[NSEM];	/* Semaphore table			*/
 struct	memblk	memlist;	/* List of free memory blocks		*/
-struct	memblk	pdptlist;	/* Head of ffs list	*/
+struct	memblk	pdptlist;	/* Head of PD/PT list	*/
+struct	memblk	ffslist;	/* Head of ffs list	*/
 
 /* Active system status */
 
@@ -68,6 +69,7 @@ void	nulluser()
 	sysinit();
 
 	/* Output Xinu memory layout */
+   //printmem(ffstlist.mnext, "FFS List");
    printmem(pdptlist.mnext, "PD/PT List");
    printmem(memlist.mnext, "Free List");
 
@@ -184,6 +186,8 @@ static	void	sysinit()
 
    // Add paging to NULL proc
    null_pdbr = create_directory();
+   
+   // Create mapping for FFS region and map onto nullproc
    write_cr3(*((unsigned int*)&null_pdbr));
 	
 	/* Initialize process table entries free */
