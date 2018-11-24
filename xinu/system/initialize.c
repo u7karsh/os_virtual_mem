@@ -69,7 +69,7 @@ void	nulluser()
 	sysinit();
 
 	/* Output Xinu memory layout */
-   //printmem(ffstlist.mnext, "FFS List");
+   printmem(ffslist.mnext, "FFS List");
    printmem(pdptlist.mnext, "PD/PT List");
    printmem(memlist.mnext, "Free List");
 
@@ -157,6 +157,10 @@ static	void	sysinit()
 	struct	procent	*prptr;		/* Ptr to process table entry	*/
 	struct	sentry	*semptr;	/* Ptr to semaphore table entry	*/
    pdbr_t null_pdbr;
+   uint32 start_page, end_page;
+   uint32 start_dir, end_dir;
+   pd_t *dir;
+   uint32 extend_from;
 
 	/* Reset the console */
 
@@ -184,8 +188,28 @@ static	void	sysinit()
 
 	Defer.ndefers = 0;
 
-   // Add paging to NULL proc
+   // Add page directory to NULL proc
+   // this will create mappings for:
+   // text, bss, data, heap, stack, and pd/pt
    null_pdbr = create_directory();
+
+   // Create mappings for:
+   // ffs, and swap
+   start_page  = (uint32)minffs / PAGE_SIZE;
+   end_page    = ceil_div( ((uint32)maxffs), PAGE_SIZE );
+   start_dir   = start_page / N_PAGE_ENTRIES;
+   end_dir     = ceil_div( end_page, N_PAGE_ENTRIES );
+   dir         = (pd_t*)(null_pdbr.pdbr_base << PAGE_OFFSET_BITS);
+   for(i = start_dir; i <= end_dir; i++){
+      if( i == (n_static_pages - 1) ){
+         extend_from = (ceil_div( ((uint32)maxpdpt), PAGE_SIZE )) % N_PAGE_ENTRIES; // 256
+         // Extend the entries in an already existing page table
+         create_pagetable_entries((uint32)dir[i].pd_base, (uint32)minffs >> PAGE_OFFSET_BITS, extend_from, N_PAGE_ENTRIES - extend_from );
+      } else{
+         // Create a new directory entry
+         create_directory_entry(&dir[i], -1, i*N_PAGE_ENTRIES, 0, N_PAGE_ENTRIES);
+      }
+   }
    
    // Create mapping for FFS region and map onto nullproc
    write_cr3(*((unsigned int*)&null_pdbr));

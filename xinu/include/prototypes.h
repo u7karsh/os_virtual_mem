@@ -622,8 +622,8 @@ extern	void	init_paging(void);
 /* in file paging.c */
 extern	pdbr_t	create_directory(void);
 extern	void     destroy_directory(pdbr_t);
-extern   uint32 create_pagetable(uint32, uint32, uint32);
-extern void create_directory_entry(pd_t *, uint32, uint32, uint32);
+extern   uint32 create_pagetable_entries(uint32, uint32, uint32, uint32);
+extern void create_directory_entry(pd_t *, uint32, uint32, uint32, uint32);
 
 extern unsigned long read_cr0(void);
 extern unsigned long read_cr2(void);

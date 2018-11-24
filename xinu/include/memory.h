@@ -8,7 +8,7 @@
  * roundmb, truncmb - Round or truncate address to memory block size
  *----------------------------------------------------------------------
  */
-#define  ceil(A, B)  (A % B == 0) ? A / B : (A+B) / B
+#define  ceil_div(A, B)  (A % B == 0) ? A / B : (A+B) / B
 #define	roundmb(x)	(char *)( (7 + (uint32)(x)) & (~7) )
 #define	truncmb(x)	(char *)( ((uint32)(x)) & (~7) )
 

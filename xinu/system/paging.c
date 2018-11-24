@@ -8,7 +8,7 @@ void	*minpdpt;
 void	*maxpdpt;
 void	*minffs;
 void	*maxffs;
-bool8 paging_static_created;
+uint32 n_static_pages;
 
 /*------------------------------------------------------------------------
  * pdptinit - initialize directory/table free list
@@ -35,7 +35,7 @@ void __init(struct	memblk *list, char *__start, uint32 listlength, void **minstr
    }
 
    *minstructP = (void*)(minstruct);
-   *maxstructP = (void*)(minstruct + listlength);
+   *maxstructP = (void*)(minstruct + listlength - 1);
 }
 
 local char *_getfreemem(struct	memblk	*list, uint32 nbytes){
@@ -188,19 +188,19 @@ pdbr_t create_directory(){
    }
 
    // Allocate bare minimum pages a.k.a flat mapping
-   npages           = ceil( ((uint32)maxpdpt), PAGE_SIZE );
-   nentries         = ceil( npages, N_PAGE_ENTRIES );
+   npages           = ceil_div( ((uint32)maxpdpt), PAGE_SIZE );
+   nentries         = ceil_div( npages, N_PAGE_ENTRIES );
    for( i = 0; i < nentries; i++ ){
-      nullproc_share = i != nentries - 1;
-      create_directory_entry((pd_t*)&diruint[i], nullproc_share ? i : -1, i*N_PAGE_ENTRIES, nullproc_share ? N_PAGE_ENTRIES : npages % N_PAGE_ENTRIES);
+      nullproc_share = i != (nentries - 1);
+      create_directory_entry((pd_t*)&diruint[i], nullproc_share ? i : -1, i*N_PAGE_ENTRIES, 0, nullproc_share ? N_PAGE_ENTRIES : npages % N_PAGE_ENTRIES);
    }
 
-   paging_static_created  = TRUE;
+   n_static_pages  = nentries;
    return pdbr;
 }
 
 // nullproc_share_index: != -1 if an entry has to be shared from null proc directory (flatmap mem)
-void create_directory_entry(pd_t *pd, uint32 nullproc_share_index, uint32 baseaddr, uint32 nentries){
+void create_directory_entry(pd_t *pd, uint32 nullproc_share_index, uint32 phybaseaddr, uint32 ventrystart, uint32 nventries){
    int i;
    pd_t   *nullprocdir;
    uint32 *pageuint;
@@ -216,8 +216,8 @@ void create_directory_entry(pd_t *pd, uint32 nullproc_share_index, uint32 basead
    pd->pd_global   = 0;	/* global (ignored)		*/
    pd->pd_avail    = 0;	/* for programmer's use		*/
 
-   if( paging_static_created == FALSE && currpid != 0 ){
-      kprintf("SYSERR: paging_static_created is FALSE for pid %d\n", currpid);
+   if( n_static_pages == -1 && currpid != 0 ){
+      kprintf("SYSERR: n_static_pages is -1 for pid %d\n", currpid);
       halt();
    }
 
@@ -230,18 +230,18 @@ void create_directory_entry(pd_t *pd, uint32 nullproc_share_index, uint32 basead
    }
 
    // Logic to share static page table amongst all processes
-   if( paging_static_created == TRUE && nullproc_share_index != -1 ){
+   if( n_static_pages != -1 && nullproc_share_index != -1 ){
       // Steal the entries from nullproc
       nullprocdir  = (pd_t*)((uint32)(proctab[0].pdbr.pdbr_base) << PAGE_OFFSET_BITS);
       pd->pd_base	 = nullprocdir[nullproc_share_index].pd_base;
    } else{
-      pd->pd_base	 = create_pagetable(0, baseaddr, nentries);		/* location of page table?	*/
+      pd->pd_base	 = create_pagetable_entries(0, phybaseaddr, ventrystart, nventries);		/* location of page table?	*/
    }
 }
 
-uint32 create_pagetable(uint32 ptbase, uint32 baseaddr, uint32 nentries){
+uint32 create_pagetable_entries(uint32 ptbase, uint32 phybaseaddr, uint32 ventrystart, uint32 nventries){
    pt_t *pt;
-   int i;
+   int i, j;
 
    // Allocate page frame if not allocated
    if( ptbase == 0 ){
@@ -249,18 +249,19 @@ uint32 create_pagetable(uint32 ptbase, uint32 baseaddr, uint32 nentries){
    }
    pt                 = (pt_t*)(ptbase << PAGE_OFFSET_BITS);
 
-   for( i = 0; i < nentries; i++ ){
-      pt[i].pt_pres	 = 1;	/* page is present?		*/
-      pt[i].pt_write  = 1;	/* page is writable?		*/
-      pt[i].pt_user	 = 0;	/* is use level protection?	*/
-      pt[i].pt_pwt	 = 0;	/* write through for this page? */
-      pt[i].pt_pcd	 = 1;	/* cache disable for this page? */
-      pt[i].pt_acc	 = 0;	/* page was accessed?		*/
-      pt[i].pt_dirty  = 0;	/* page was written?		*/
-      pt[i].pt_mbz	 = 0;	/* must be zero			*/
-      pt[i].pt_global = 0;	/* should be zero in 586	*/
-      pt[i].pt_avail  = 0;	/* for programmer's use		*/
-      pt[i].pt_base	 = (baseaddr + i); /* location of page?		*/
+   for( i = 0; i < nventries; i++ ){
+      j               = ventrystart + i;
+      pt[j].pt_pres	 = 1;	/* page is present?		*/
+      pt[j].pt_write  = 1;	/* page is writable?		*/
+      pt[j].pt_user	 = 0;	/* is use level protection?	*/
+      pt[j].pt_pwt	 = 0;	/* write through for this page? */
+      pt[j].pt_pcd	 = 1;	/* cache disable for this page? */
+      pt[j].pt_acc	 = 0;	/* page was accessed?		*/
+      pt[j].pt_dirty  = 0;	/* page was written?		*/
+      pt[j].pt_mbz	 = 0;	/* must be zero			*/
+      pt[j].pt_global = 0;	/* should be zero in 586	*/
+      pt[j].pt_avail  = 0;	/* for programmer's use		*/
+      pt[j].pt_base	 = (phybaseaddr + i); /* location of page?		*/
    }
    return ptbase;
 }
@@ -289,8 +290,8 @@ void print_directory(pdbr_t pdbr){
 void destroy_directory(pdbr_t pdbr){
    uint32 dirno    = pdbr.pdbr_base;
    pd_t *frame     = (pd_t*)(dirno << PAGE_OFFSET_BITS);
-   uint32 npages   = ceil( ((uint32)maxpdpt), PAGE_SIZE );
-   uint32 nentries = ceil( npages, N_PAGE_ENTRIES );
+   uint32 npages   = ceil_div( ((uint32)maxpdpt), PAGE_SIZE );
+   uint32 nentries = ceil_div( npages, N_PAGE_ENTRIES );
    int i;
 
    // No need to free static pages as they are shared and nullproc
@@ -309,7 +310,7 @@ void destroy_directory(pdbr_t pdbr){
 void init_paging(){
    // Init PD/PT
    __init( &pdptlist, (char*)((uint32)maxheap + 1), PAGE_SIZE * MAX_PT_SIZE, &minpdpt, &maxpdpt );
-   paging_static_created = FALSE;
+   n_static_pages = -1;
 
    // Init FFS region
    __init( &ffslist, (char*)((uint32)maxpdpt + 1), PAGE_SIZE * MAX_FSS_SIZE, &minffs, &maxffs );

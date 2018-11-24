@@ -59,7 +59,7 @@ typedef struct {
   unsigned int pdbr_base	: 20;		/* location of page directory?	*/
 } pdbr_t;
 
-extern bool8 paging_static_created;
+extern uint32 n_static_pages;
 
 /* Macros */
 
