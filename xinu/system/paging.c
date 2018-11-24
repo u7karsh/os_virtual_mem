@@ -190,7 +190,7 @@ pdbr_t create_directory(){
    }
 
    // Allocate bare minimum pages
-   npages           = ceil( ((uint32)maxpdpt+1), PAGE_SIZE );
+   npages           = ceil( ((uint32)maxpdpt), PAGE_SIZE );
    nentries         = ceil( npages, 1024 );
    for( i = 0; i < nentries; i++ ){
       ptbase        = getpdptframe();

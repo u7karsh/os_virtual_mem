@@ -24,7 +24,6 @@ pid32	create(
 	int32		i;
 	uint32		*a;		/* Points to list of args	*/
 	uint32		*saddr;		/* Stack address		*/
-   pdbr_t pdbr;
 
 	mask = disable();
 	if (ssize < MINSTK)
@@ -55,6 +54,9 @@ pid32	create(
 	prptr->prdesc[0] = CONSOLE;
 	prptr->prdesc[1] = CONSOLE;
 	prptr->prdesc[2] = CONSOLE;
+
+   /* The following is required to support paging */
+   prptr->pdbr     = create_directory();
 
 	/* Initialize stack as if the process was called		*/
 
@@ -93,13 +95,6 @@ pid32	create(
 	*--saddr = savsp;		/* %ebp (while finishing ctxsw)	*/
 	*--saddr = 0;			/* %esi */
 	*--saddr = 0;			/* %edi */
-
-   /* The following is required to support paging */
-   pdbr            = create_directory();
-   kprintf("proc: %d\n", pid);
-   print_directory(pdbr);
-
-	*--saddr = *((unsigned int*)&pdbr);		/* %pdbr */
 
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
 	restore(mask);

@@ -92,7 +92,6 @@ void	nulluser()
 
 	resume(create((void *)startup, INITSTK, INITPRIO,
 					"Startup process", 0, NULL));
-   kprintf("chk1\n");
 
 	/* Become the Null process (i.e., guarantee that the CPU has	*/
 	/*  something to run when no other process is ready to execute)	*/
@@ -183,6 +182,10 @@ static	void	sysinit()
 
 	Defer.ndefers = 0;
 
+   // Add paging to NULL proc
+   null_pdbr = create_directory();
+   write_cr3(*((unsigned int*)&null_pdbr));
+	
 	/* Initialize process table entries free */
 
 	for (i = 0; i < NPROC; i++) {
@@ -202,13 +205,9 @@ static	void	sysinit()
 	prptr->prstkbase = getstk(NULLSTK);
 	prptr->prstklen = NULLSTK;
 	prptr->prstkptr = 0;
+   prptr->pdbr = null_pdbr;
 	currpid = NULLPROC;
 
-   // Add paging to NULL proc
-   null_pdbr = create_directory();
-   write_cr3(*((unsigned int*)&null_pdbr));
-   print_directory(read_cr3());
-	
 	/* Initialize semaphores */
 
 	for (i = 0; i < NSEM; i++) {

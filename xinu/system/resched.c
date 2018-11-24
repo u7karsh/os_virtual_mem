@@ -41,9 +41,15 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	ptnew = &proctab[currpid];
 	ptnew->prstate = PR_CURR;
 	preempt = QUANTUM;		/* Reset time slice for process	*/
+
+   // Swap the pdbr of new process so that we can remove
+   // directory of killed processes
+   write_cr3(*((unsigned long*)&(ptnew->pdbr)));
+   if( ptold->prstate == PR_FREE ){
+      // Free the directory
+      destroy_directory(ptold->pdbr);
+   }
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
-   kprintf("ctxsw: %d %08X\n", currpid, read_cr3());
-   print_directory(read_cr3());
 
 	/* Old process returns here when resumed */
 

@@ -2,6 +2,7 @@
 
 #include <kernel.h>
 #include <conf.h>
+#include <paging.h>
 #include <process.h>
 #include <queue.h>
 #include <resched.h>
@@ -31,7 +32,6 @@
 #include <name.h>
 #include <shell.h>
 #include <date.h>
-#include <paging.h>
 #include <prototypes.h>
 #include <delay.h>
 #include <i386.h>

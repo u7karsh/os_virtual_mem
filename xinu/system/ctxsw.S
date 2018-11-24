@@ -13,9 +13,6 @@ ctxsw:
 		pushfl			/* Push flags onto the stack	*/
 		pushal			/* Push general regs. on stack	*/
 
-      movl %cr3, %eax  /* load the value of pdbr on cr3 */
-      pushl %eax
-
 		/* Save old segment registers here, if multiple allowed */
 
 		movl	8(%ebp),%eax	/* Get mem location in which to	*/
@@ -30,8 +27,6 @@ ctxsw:
 		movl	(%eax),%esp	/* Pop up new process's SP	*/
 
 		/* Restore new seg. registers here, if multiple allowed */
-      popl  %eax
-      movl  %eax, %cr3
 
 		popal			/* Restore general registers	*/
 		movl	4(%esp),%ebp	/* Pick up ebp before restoring	*/

@@ -58,6 +58,5 @@ shellcmd xsh_ps(int nargs, char *args[])
 			prptr->prprio, prptr->prparent, prptr->prstkbase,
 			prptr->prstkptr, prptr->prstklen);
 	}
-   printmem(pdptlist.mnext, "MAIN");
 	return 0;
 }

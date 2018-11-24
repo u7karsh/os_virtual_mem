@@ -13,7 +13,6 @@ syscall	kill(
 	intmask	mask;			/* Saved interrupt mask		*/
 	struct	procent *prptr;		/* Ptr to process's table entry	*/
 	int32	i;			/* Index into descriptors	*/
-   uint32 cr3;
 
 	mask = disable();
 	if (isbadpid(pid) || (pid == NULLPROC)
@@ -31,9 +30,6 @@ syscall	kill(
 		close(prptr->prdesc[i]);
 	}
 	freestk(prptr->prstkbase, prptr->prstklen);
-
-   cr3  = read_cr3();
-   destroy_directory(*((pdbr_t*)&cr3));
 
 	switch (prptr->prstate) {
 	case PR_CURR:
@@ -58,6 +54,7 @@ syscall	kill(
 		prptr->prstate = PR_FREE;
 	}
 
+   destroy_directory(prptr->pdbr);
 	restore(mask);
 	return OK;
 }
