@@ -59,6 +59,8 @@ typedef struct {
   unsigned int pdbr_base	: 20;		/* location of page directory?	*/
 } pdbr_t;
 
+extern bool8 paging_static_created;
+
 /* Macros */
 
 #define PAGE_SIZE       4096    /* number of bytes per page		 		 */
@@ -67,5 +69,6 @@ typedef struct {
 #define MAX_SWAP_SIZE   4096    /* size of swap space (in frames) 			 */
 #define MAX_FSS_SIZE    2048    /* size of FSS space  (in frames)			 */
 #define MAX_PT_SIZE	256	/* size of space used for page tables (in frames)	 */
+#define N_PAGE_ENTRIES 1024
 
 #endif

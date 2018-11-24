@@ -6,6 +6,7 @@
 
 void	*minpdpt;
 void	*maxpdpt;
+bool8 paging_static_created;
 
 /*------------------------------------------------------------------------
  * pdptinit - initialize directory/table free list
@@ -159,19 +160,15 @@ syscall freepdptframe(uint32 frame){
    return _freemem(&pdptlist, blkaddr, PAGE_SIZE, minpdpt, maxpdpt);
 }
 
-
-
 pdbr_t create_directory(){
    pdbr_t pdbr;
    uint32 dirframeno;
    uint32 i;
-   uint32 j;
    uint32 *diruint;
    uint32 npages;
    uint32 nentries;
-   uint32 ptbase;
    pd_t   *pd;
-   pt_t   *pt;
+   pd_t   *nullprocdir;
 
    dirframeno      = getpdptframe();
    diruint         = (uint32*)(dirframeno << PAGE_OFFSET_BITS);
@@ -185,33 +182,15 @@ pdbr_t create_directory(){
    pdbr.pdbr_base  = dirframeno;
 
    // Zero all 1k entries
-   for( i = 0; i < 1024; i++ ){
+   for( i = 0; i < N_PAGE_ENTRIES; i++ ){
       diruint[i] = 0;
    }
 
-   // Allocate bare minimum pages
+   // Allocate bare minimum pages a.k.a flat mapping
    npages           = ceil( ((uint32)maxpdpt), PAGE_SIZE );
-   nentries         = ceil( npages, 1024 );
+   nentries         = ceil( npages, N_PAGE_ENTRIES );
    for( i = 0; i < nentries; i++ ){
-      ptbase        = getpdptframe();
-      pt            = (pt_t*)(ptbase << PAGE_OFFSET_BITS);
-      for( j = 0; j < 1024; j++ ){
-         pt[j].pt_pres	 = 1;	/* page is present?		*/
-         pt[j].pt_write  = 1;	/* page is writable?		*/
-         pt[j].pt_user	 = 0;	/* is use level protection?	*/
-         pt[j].pt_pwt	 = 0;	/* write through for this page? */
-         pt[j].pt_pcd	 = 1;	/* cache disable for this page? */
-         pt[j].pt_acc	 = 0;	/* page was accessed?		*/
-         pt[j].pt_dirty  = 0;	/* page was written?		*/
-         pt[j].pt_mbz	 = 0;	/* must be zero			*/
-         pt[j].pt_global = 0;	/* should be zero in 586	*/
-         pt[j].pt_avail  = 0;	/* for programmer's use		*/
-         // TODO: Akshay
-         pt[j].pt_base	 = (i*1024 + j); /* location of page?		*/
-      }
-
       pd              = (pd_t*)&diruint[i];
-
       pd->pd_pres	    = 1;	/* page table present?		*/
       pd->pd_write    = 1;	/* page is writable?		*/
       pd->pd_user	    = 0;	/* is use level protection?	*/
@@ -222,16 +201,47 @@ pdbr_t create_directory(){
       pd->pd_fmb	    = 0;	/* four MB pages?		*/
       pd->pd_global   = 0;	/* global (ignored)		*/
       pd->pd_avail    = 0;	/* for programmer's use		*/
-      pd->pd_base	    = ptbase;		/* location of page table?	*/
+
+      // Logic to share static page table amongst all processes
+      if( paging_static_created == TRUE && (i != nentries - 1) ){
+         // Steal the entries from nullproc
+         nullprocdir  = (pd_t*)((uint32)(proctab[0].pdbr.pdbr_base) << PAGE_OFFSET_BITS);
+         pd->pd_base	 = nullprocdir[i].pd_base;
+      } else{
+         pd->pd_base	 = create_pagetable(i, (i == nentries - 1) ? npages % N_PAGE_ENTRIES : N_PAGE_ENTRIES);		/* location of page table?	*/
+      }
    }
 
+   paging_static_created  = TRUE;
    return pdbr;
+}
+
+// TODO: Extend from flat mapping
+uint32 create_pagetable(uint32 index, uint32 nentries){
+   uint32 ptbase      = getpdptframe();
+   pt_t *pt           = (pt_t*)(ptbase << PAGE_OFFSET_BITS);
+   int i;
+
+   for( i = 0; i < N_PAGE_ENTRIES; i++ ){
+      pt[i].pt_pres	 = (i < nentries) ? 1 : 0;	/* page is present?		*/
+      pt[i].pt_write  = 1;	/* page is writable?		*/
+      pt[i].pt_user	 = 0;	/* is use level protection?	*/
+      pt[i].pt_pwt	 = 0;	/* write through for this page? */
+      pt[i].pt_pcd	 = 1;	/* cache disable for this page? */
+      pt[i].pt_acc	 = 0;	/* page was accessed?		*/
+      pt[i].pt_dirty  = 0;	/* page was written?		*/
+      pt[i].pt_mbz	 = 0;	/* must be zero			*/
+      pt[i].pt_global = 0;	/* should be zero in 586	*/
+      pt[i].pt_avail  = 0;	/* for programmer's use		*/
+      pt[i].pt_base	 = (index*N_PAGE_ENTRIES + i); /* location of page?		*/
+   }
+   return ptbase;
 }
 
 void print_page(pd_t pd){
    int i;
    uint32* page = (uint32*)(pd.pd_base << PAGE_OFFSET_BITS);
-   for( i = 0; i < 1024; i++ ){
+   for( i = 0; i < N_PAGE_ENTRIES; i++ ){
       if( page[i] & 0x1 ){
          kprintf("        %08d: 0x%08X\n", i, page[i]);
       }
@@ -242,7 +252,7 @@ void print_directory(pdbr_t pdbr){
    int i;
    uint32* dir = (uint32*)(pdbr.pdbr_base << PAGE_OFFSET_BITS);
    kprintf("PDBR: %08X\n", *((pdbr_t*)&pdbr));
-   for( i = 0; i < 1024; i++ ){
+   for( i = 0; i < N_PAGE_ENTRIES; i++ ){
       if( dir[i] & 0x1 ){
          kprintf("%08d: 0x%08X\n", i, dir[i]);
       }
@@ -250,12 +260,16 @@ void print_directory(pdbr_t pdbr){
 }
 
 void destroy_directory(pdbr_t pdbr){
-   uint32 dirno  = pdbr.pdbr_base;
-   pd_t *frame   = (pd_t*)(dirno << PAGE_OFFSET_BITS);
+   uint32 dirno    = pdbr.pdbr_base;
+   pd_t *frame     = (pd_t*)(dirno << PAGE_OFFSET_BITS);
+   uint32 npages   = ceil( ((uint32)maxpdpt), PAGE_SIZE );
+   uint32 nentries = ceil( npages, N_PAGE_ENTRIES );
    int i;
 
-   // Free all pages
-   for( i = 0; i < 1024; i++ ){
+   // No need to free static pages as they are shared and nullproc
+   // allocated them
+   // As nullproc will never be freed, no need to free it
+   for( i = nentries - 1; i < N_PAGE_ENTRIES; i++ ){
       if( frame[i].pd_pres == TRUE ){
          freepdptframe(frame[i].pd_base);
       }
@@ -268,6 +282,7 @@ void destroy_directory(pdbr_t pdbr){
 void init_paging(){
    // Init PD/PT
    __init( &pdptlist, (char*)((uint32)maxheap + 1), PAGE_SIZE * MAX_PT_SIZE, &minpdpt, &maxpdpt );
+   paging_static_created = FALSE;
    /* Set interrupt vector for the pagefault to invoke pagefault_handler_disp */
    set_evec(IRQPAGE, (uint32)pagefault_handler_disp);
    //enable_paging();
