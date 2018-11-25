@@ -95,7 +95,6 @@ local syscall	_freemem(
    mask = disable();
    if ((nbytes == 0) || ((uint32) blkaddr < (uint32) __minstruct)
          || ((uint32) blkaddr > (uint32) __maxstruct)) {
-      kprintf("SYSERR: _freemem %08X %08X %08X\n", (uint32) blkaddr, (uint32)__minstruct, (uint32)__maxstruct);
       restore(mask);
       return SYSERR;
    }
@@ -120,7 +119,7 @@ local syscall	_freemem(
 
    if (((prev != list) && (uint32) block < top)
          || ((next != NULL)	&& (uint32) block+nbytes>(uint32)next)) {
-      kprintf("SYSERR2: _freemem\n");
+      kprintf("%d %d %d %d %d\n", prev, list, block, top, next, nbytes);
       restore(mask);
       return SYSERR;
    }
@@ -151,6 +150,10 @@ local syscall	_freemem(
 uint32 getpdptframe(){
    uint32 frame;
    frame = (uint32)_getfreemem(&pdptlist, PAGE_SIZE);
+   if( frame == SYSERR ){
+      kprintf("Out of pdpt memory!\n");
+      halt();
+   }
 
    // Align it
    frame >>= PAGE_OFFSET_BITS;
@@ -336,15 +339,23 @@ void destroy_directory(pdbr_t pdbr){
    // As nullproc will never be freed, no need to free it
    for( i = nentries - 1; i < N_PAGE_ENTRIES; i++ ){
       if( frame[i].pd_pres == TRUE ){
-         freepdptframe(frame[i].pd_base);
+         if( freepdptframe(frame[i].pd_base) == SYSERR ){
+            kprintf("Unable to free PD/PT frame %08X\n", frame[i]);
+            halt();
+         }
       }
    }
 
    // Free directory
-   freepdptframe(dirno);
+   if(freepdptframe(dirno) == SYSERR){
+      kprintf("Unable to free PD/PT directory");
+      halt();
+   }
 }
 
 void init_paging(){
+   int i;
+
    // Init PD/PT
    __init( &pdptlist, (char*)((uint32)maxheap + 1), PAGE_SIZE * MAX_PT_SIZE, &minpdpt, &maxpdpt );
    n_static_pages = -1;
@@ -352,11 +363,13 @@ void init_paging(){
 
    // Init FFS region
    __init( &ffslist, (char*)((uint32)maxpdpt + 1), PAGE_SIZE * MAX_FSS_SIZE, &minffs, &maxffs );
+   for( i = 0; i < MAX_FSS_SIZE; i++){
+      ptmap[i] = NULL;
+   }
 
    // Init swap region
    __init( &swaplist, (char*)((uint32)maxffs + 1), PAGE_SIZE * MAX_SWAP_SIZE, &minswap, &maxswap );
 
    /* Set interrupt vector for the pagefault to invoke pagefault_handler_disp */
    set_evec(IRQPAGE, (uint32)pagefault_handler_disp);
-   //enable_paging();
 }

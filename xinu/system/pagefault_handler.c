@@ -5,7 +5,7 @@
 
 unsigned int error_code;
 
-local void swap(uint32 ffsframe, uint32 swapframe, pt_t *ffsvmap);
+local void copy_page(uint32, uint32, bool8);
 
 /*------------------------------------------------------------------------
  * pagefault_handler - high level page interrupt handler
@@ -20,12 +20,17 @@ void	pagefault_handler(){
    virt_addr_t virt;
    pd_t *dir;
    pt_t *pt;
-   pt_t *ptP, *oldPtP;
+   pt_t *ptP;
 
    if( !(error_code & 0x1) ){
       // Read cr2, and cr3
       cr2  = read_cr2();
       cr3  = read_cr3();
+
+      if( cr2 < (uint32)maxswap ){
+         kprintf("SYSERR: Pagefault on illegal addr range\n");
+         halt();
+      }
 
       // Decode cr2, cr3
       pdbr = *((pdbr_t*)&cr3);
@@ -39,13 +44,23 @@ void	pagefault_handler(){
          pt   = (pt_t*)(dir[virt.pd_offset].pd_base << PAGE_OFFSET_BITS);
          ptP  = &pt[virt.pt_offset];
 
+         if( ptP->pt_pres ){
+            // TODO: Do nothing if its present bit is set
+            return;
+         }
+
          // Handle the fault IFF it was given a virtual addr
          if( ptP->pt_isvmalloc || ptP->pt_isswapped ){
+            if( ptP->pt_isvmalloc && ptP->pt_isswapped ){
+               kprintf("SYSERR: isvmalloc and isswapped set together\n");
+               halt();
+            }
             // 1. Enter priveledged mode
             // 2. Allocate the page
             // 3. Exit priveledged mode
             kernel_mode_enter();
             phys_frame    = getffsframe();
+
             maxpdptframe  = ceil_div( ((uint32)maxpdpt), PAGE_SIZE );
             if( phys_frame == (uint32)SYSERR >> PAGE_OFFSET_BITS ){
                // There is no space in FFS region
@@ -56,26 +71,39 @@ void	pagefault_handler(){
                // 2. Check if dirty
                //    -> yes => allocate a frame in swap mem and do a swap
                //    -> no  => drop the page
+               swapframe                       = ptP->pt_isswapped ? ptP->pt_base : getswapframe();
+               phys_frame                      = evict_frame;
+               ptmap[ptmapindex]->pt_base      = swapframe;
+               ptmap[ptmapindex]->pt_pres      = 0;
+               ptmap[ptmapindex]->pt_isswapped = 1;
                if( ptmap[ptmapindex]->pt_dirty || ptP->pt_isswapped ){
-                  // ffsframe, swapframe, ffsvmap
-                  swapframe       = ptP->pt_isswapped ? ptP->pt_base : getswapframe();
-                  swap(evict_frame, swapframe, ptmap[ptmapindex]);
-                  phys_frame      = evict_frame;
+                  copy_page(evict_frame, swapframe, ptP->pt_isswapped);
                }
             } else{
                ptmapindex         = phys_frame - maxpdptframe;
+               // If the swapped out page gets a free FFS region, bring it back
+               if( ptP->pt_isswapped ){
+                  kprintf("checkpoint reached\n");
+                  copy_page(ptP->pt_base, phys_frame, FALSE);
+               }
             }
 
-            ptP->pt_base          = phys_frame;
+            if( ptmap[ptmapindex] != NULL ){
+               if( ptmap[ptmapindex]->pt_pres ){
+                  kprintf("ptmap anomaly\n");
+               }
+            }
+
             ptmap[ptmapindex]     = ptP;
             kernel_mode_exit();
 
+            ptP->pt_base          = phys_frame;
             ptP->pt_pres          = 1;
             ptP->pt_isvmalloc     = 0;
             ptP->pt_isswapped     = 0;
          } else{
             // Segfault
-            kprintf("SEGMENTATION FAULT (!isvmalloc) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
+            kprintf("SEGMENTATION FAULT (!isvmalloc && !isswapped) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
             halt();
          }
       } else{
@@ -86,28 +114,25 @@ void	pagefault_handler(){
    }
 }
 
-local void swap(uint32 ffsframe, uint32 swapframe, pt_t *ffsvmap){
+local void copy_page(uint32 fromframe, uint32 toframe, bool8 bothways){
    int i;
    uint32 temp;
-   uint32 *ffsuint32;
-   uint32 *swapuint32;
+   uint32 *fromuint32;
+   uint32 *touint32;
 
-   // Update the old entry belonging to this phys mem
-   ffsuint32            = (uint32*)(ffsvmap->pt_base >> PAGE_OFFSET_BITS);
-   swapuint32           = (uint32*)(swapframe >> PAGE_OFFSET_BITS);
-   ffsvmap->pt_base     = swapframe;
+   fromuint32           = (uint32*)(fromframe >> PAGE_OFFSET_BITS);
+   touint32             = (uint32*)(toframe >> PAGE_OFFSET_BITS);
 
-   // Swap the contents
-   for(i = 0; i < N_PAGE_ENTRIES; i++){
-      temp          = ffsuint32[i];
-      ffsuint32[i]  = swapuint32[i];
-      swapuint32[i] = temp;
-   }
-
-   ffsvmap->pt_pres      = 0;
-   ffsvmap->pt_isswapped = 1;
-   if( ffsvmap->pt_isvmalloc ){
-      kprintf("SYSERR: vmalloc pagefault_handler");
-      halt();
+   if( bothways ){
+      // Swap the contents
+      for(i = 0; i < N_PAGE_ENTRIES; i++){
+         temp          = fromuint32[i];
+         fromuint32[i] = touint32[i];
+         touint32[i]   = temp;
+      }
+   } else{
+      for(i = 0; i < N_PAGE_ENTRIES; i++){
+         touint32[i]  = fromuint32[i];
+      }
    }
 }
