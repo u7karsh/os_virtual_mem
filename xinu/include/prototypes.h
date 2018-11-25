@@ -46,6 +46,10 @@ extern	syscall	control(did32, int32, int32, int32);
 
 /* in file create.c */
 extern	pid32	create(void *, uint32, pri16, char *, uint32, ...);
+extern	pid32	newpid(void);
+
+/* in file vcreate.c */
+extern	pid32	vcreate(void *, uint32, uint32, pri16, char *, uint32, ...);
 
 /* in file ctxsw.S */
 extern	void	ctxsw(void *, void *);
@@ -612,6 +616,7 @@ extern	syscall	yield(void);
 
 /* in file paging.c */
 extern	uint32 getpdptframe();
+extern	uint32 getffsframe();
 
 /* in file paging.c */
 extern	syscall	freepdptframe(uint32);
@@ -624,6 +629,10 @@ extern	pdbr_t	create_directory(void);
 extern	void     destroy_directory(pdbr_t);
 extern   uint32 create_pagetable_entries(uint32, uint32, uint32, uint32);
 extern void create_directory_entry(pd_t *, uint32, uint32, uint32, uint32);
+extern void kernel_mode_enter();
+extern void kernel_mode_exit();
+
+extern char  	*vmalloc(uint32);
 
 extern unsigned long read_cr0(void);
 extern unsigned long read_cr2(void);

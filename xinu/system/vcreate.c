@@ -1,4 +1,4 @@
-/* create.c - create, newpid */
+/* vcreate.c - vcreate */
 
 #include <xinu.h>
 
@@ -6,9 +6,10 @@
  *  create  -  Create a process to start running a function on x86
  *------------------------------------------------------------------------
  */
-pid32	create(
+pid32	vcreate(
 	  void		*funcaddr,	/* Address of the function	*/
 	  uint32	ssize,		/* Stack size in bytes		*/
+	  uint32	hsize,		/* Virtual heap size in bytes		*/
 	  pri16		priority,	/* Process priority > 0		*/
 	  char		*name,		/* Name (for debugging)		*/
 	  uint32	nargs,		/* Number of args that follow	*/
@@ -28,7 +29,7 @@ pid32	create(
 		ssize = MINSTK;
 	ssize = (uint32) roundmb(ssize);
 	if ( (priority < 1) || ((pid=newpid()) == SYSERR) ||
-	     ((saddr = (uint32 *)getstk(ssize)) == (uint32 *)SYSERR) ) {
+	     ((saddr = (uint32 *)getstk(ssize)) == (uint32 *)SYSERR) || (hsize > n_free_vpages)) {
 		restore(mask);
 		return SYSERR;
 	}
@@ -54,8 +55,10 @@ pid32	create(
 	prptr->prdesc[2] = CONSOLE;
 
    /* The following is required to support paging */
-   prptr->pdbr     = create_directory();
-   prptr->hsize    = 0;
+   prptr->pdbr      = create_directory();
+   prptr->hsize     = hsize;
+   n_free_vpages   -= hsize;
+   prptr->vmax      = ceil_div(((uint32)minffs), PAGE_SIZE);
 
 	/* Initialize stack as if the process was called		*/
 
@@ -98,27 +101,4 @@ pid32	create(
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
 	restore(mask);
 	return pid;
-}
-
-/*------------------------------------------------------------------------
- *  newpid  -  Obtain a new (free) process ID
- *------------------------------------------------------------------------
- */
-pid32	newpid(void)
-{
-	uint32	i;			/* Iterate through all processes*/
-	static	pid32 nextpid = 1;	/* Position in table to try or	*/
-					/*   one beyond end of table	*/
-
-	/* Check all NPROC slots */
-
-	for (i = 0; i < NPROC; i++) {
-		nextpid %= NPROC;	/* Wrap around to beginning */
-		if (proctab[nextpid].prstate == PR_FREE) {
-			return nextpid++;
-		} else {
-			nextpid++;
-		}
-	}
-	return (pid32) SYSERR;
 }

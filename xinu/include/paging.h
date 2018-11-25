@@ -7,7 +7,6 @@ typedef unsigned int	 bsd_t;
 /* Structure for a page directory entry */
 
 typedef struct {
-
   unsigned int pd_pres	: 1;		/* page table present?		*/
   unsigned int pd_write : 1;		/* page is writable?		*/
   unsigned int pd_user	: 1;		/* is use level protection?	*/
@@ -24,18 +23,19 @@ typedef struct {
 /* Structure for a page table entry */
 
 typedef struct {
-
-  unsigned int pt_pres	: 1;		/* page is present?		*/
-  unsigned int pt_write : 1;		/* page is writable?		*/
-  unsigned int pt_user	: 1;		/* is use level protection?	*/
-  unsigned int pt_pwt	: 1;		/* write through for this page? */
-  unsigned int pt_pcd	: 1;		/* cache disable for this page? */
-  unsigned int pt_acc	: 1;		/* page was accessed?		*/
-  unsigned int pt_dirty : 1;		/* page was written?		*/
-  unsigned int pt_mbz	: 1;		/* must be zero			*/
-  unsigned int pt_global: 1;		/* should be zero in 586	*/
-  unsigned int pt_avail : 3;		/* for programmer's use		*/
-  unsigned int pt_base	: 20;		/* location of page?		*/
+  unsigned int pt_pres	    : 1;		/* page is present?		*/
+  unsigned int pt_write     : 1;		/* page is writable?		*/
+  unsigned int pt_user	    : 1;		/* is use level protection?	*/
+  unsigned int pt_pwt	    : 1;		/* write through for this page? */
+  unsigned int pt_pcd	    : 1;		/* cache disable for this page? */
+  unsigned int pt_acc	    : 1;		/* page was accessed?		*/
+  unsigned int pt_dirty     : 1;		/* page was written?		*/
+  unsigned int pt_mbz	    : 1;		/* must be zero			*/
+  unsigned int pt_global    : 1;		/* should be zero in 586	*/
+  unsigned int pt_isvmalloc : 1;		/* for programmer's use		*/
+  unsigned int pt_isswapped : 1;		/* for programmer's use		*/
+  unsigned int pt_avail     : 1;		/* for programmer's use		*/
+  unsigned int pt_base	    : 20;		/* location of page?		*/
 } pt_t;
 
 typedef struct{
@@ -60,6 +60,7 @@ typedef struct {
 } pdbr_t;
 
 extern uint32 n_static_pages;
+extern uint32 n_free_vpages;
 
 /* Macros */
 

@@ -9,6 +9,7 @@ void	*maxpdpt;
 void	*minffs;
 void	*maxffs;
 uint32 n_static_pages;
+uint32 n_free_vpages;
 
 /*------------------------------------------------------------------------
  * pdptinit - initialize directory/table free list
@@ -74,7 +75,8 @@ local char *_getfreemem(struct	memblk	*list, uint32 nbytes){
          curr = curr->mnext;
       }
    }
-   kprintf("SYSERR2: _getfreemem\n");
+   kprintf("SYSERR2: _getfreemem %d\n", nbytes);
+   halt();
    restore(mask);
    return (char *)SYSERR;
 }
@@ -157,6 +159,16 @@ uint32 getpdptframe(){
    return frame;
 }
 
+uint32 getffsframe(){
+   uint32 frame;
+   frame = (uint32)_getfreemem(&ffslist, PAGE_SIZE);
+
+   // Align it
+   frame >>= PAGE_OFFSET_BITS;
+
+   return frame;
+}
+
 syscall freepdptframe(uint32 frame){
    char *blkaddr = (char*)(frame << PAGE_OFFSET_BITS);
    return _freemem(&pdptlist, blkaddr, PAGE_SIZE, minpdpt, maxpdpt);
@@ -205,16 +217,16 @@ void create_directory_entry(pd_t *pd, uint32 nullproc_share_index, uint32 phybas
    pd_t   *nullprocdir;
    uint32 *pageuint;
 
-   pd->pd_pres	    = 1;	/* page table present?		*/
-   pd->pd_write    = 1;	/* page is writable?		*/
-   pd->pd_user	    = 0;	/* is use level protection?	*/
-   pd->pd_pwt	    = 0;	/* write through cachine for pt?*/
-   pd->pd_pcd	    = 1;	/* cache disable for this pt?	*/
-   pd->pd_acc	    = 0;	/* page table was accessed?	*/
-   pd->pd_mbz	    = 0;	/* must be zero			*/
-   pd->pd_fmb	    = 0;	/* four MB pages?		*/
-   pd->pd_global   = 0;	/* global (ignored)		*/
-   pd->pd_avail    = 0;	/* for programmer's use		*/
+   pd->pd_pres	     = 1;	/* page table present?		*/
+   pd->pd_write     = 1;	/* page is writable?		*/
+   pd->pd_user	     = 0;	/* is use level protection?	*/
+   pd->pd_pwt	     = 0;	/* write through cachine for pt?*/
+   pd->pd_pcd	     = 1;	/* cache disable for this pt?	*/
+   pd->pd_acc	     = 0;	/* page table was accessed?	*/
+   pd->pd_mbz	     = 0;	/* must be zero			*/
+   pd->pd_fmb	     = 0;	/* four MB pages?		*/
+   pd->pd_global    = 0;	/* global (ignored)		*/
+   pd->pd_avail     = 0;	/* for programmer's use		*/
 
    if( n_static_pages == -1 && currpid != 0 ){
       kprintf("SYSERR: n_static_pages is -1 for pid %d\n", currpid);
@@ -250,18 +262,20 @@ uint32 create_pagetable_entries(uint32 ptbase, uint32 phybaseaddr, uint32 ventry
    pt                 = (pt_t*)(ptbase << PAGE_OFFSET_BITS);
 
    for( i = 0; i < nventries; i++ ){
-      j               = ventrystart + i;
-      pt[j].pt_pres	 = 1;	/* page is present?		*/
-      pt[j].pt_write  = 1;	/* page is writable?		*/
-      pt[j].pt_user	 = 0;	/* is use level protection?	*/
-      pt[j].pt_pwt	 = 0;	/* write through for this page? */
-      pt[j].pt_pcd	 = 1;	/* cache disable for this page? */
-      pt[j].pt_acc	 = 0;	/* page was accessed?		*/
-      pt[j].pt_dirty  = 0;	/* page was written?		*/
-      pt[j].pt_mbz	 = 0;	/* must be zero			*/
-      pt[j].pt_global = 0;	/* should be zero in 586	*/
-      pt[j].pt_avail  = 0;	/* for programmer's use		*/
-      pt[j].pt_base	 = (phybaseaddr + i); /* location of page?		*/
+      j                  = ventrystart + i;
+      pt[j].pt_pres	    = 1;	/* page is present?		*/
+      pt[j].pt_write     = 1;	/* page is writable?		*/
+      pt[j].pt_user	    = 0;	/* is use level protection?	*/
+      pt[j].pt_pwt	    = 0;	/* write through for this page? */
+      pt[j].pt_pcd	    = 1;	/* cache disable for this page? */
+      pt[j].pt_acc	    = 0;	/* page was accessed?		*/
+      pt[j].pt_dirty     = 0;	/* page was written?		*/
+      pt[j].pt_mbz	    = 0;	/* must be zero			*/
+      pt[j].pt_global    = 0;	/* should be zero in 586	*/
+      pt[j].pt_isvmalloc = 0;	/* for programmer's use		*/
+      pt[j].pt_isswapped = 0;	/* for programmer's use		*/
+      pt[j].pt_avail     = 0;	/* for programmer's use		*/
+      pt[j].pt_base	    = (phybaseaddr + i); /* location of page?		*/
    }
    return ptbase;
 }
@@ -274,6 +288,20 @@ void print_page(pd_t pd){
          kprintf("        %08d: 0x%08X\n", i, page[i]);
       }
    }
+}
+
+// We assume that our kernel is nullproc
+// CTXSW PDBR to null proc to emulate
+// entering kernel mode
+void kernel_mode_enter(){
+   write_cr3( *((uint32*)&(proctab[0].pdbr)) );
+}
+
+// We assume that our kernel is nullproc
+// CTXSW PDBR to curr proc to emulate
+// exiting kernel mode
+void kernel_mode_exit(){
+   write_cr3( *((uint32*)&(proctab[currpid].pdbr)) );
 }
 
 void print_directory(pdbr_t pdbr){
@@ -311,6 +339,7 @@ void init_paging(){
    // Init PD/PT
    __init( &pdptlist, (char*)((uint32)maxheap + 1), PAGE_SIZE * MAX_PT_SIZE, &minpdpt, &maxpdpt );
    n_static_pages = -1;
+   n_free_vpages  = MAX_HEAP_SIZE;
 
    // Init FFS region
    __init( &ffslist, (char*)((uint32)maxpdpt + 1), PAGE_SIZE * MAX_FSS_SIZE, &minffs, &maxffs );

@@ -2,23 +2,17 @@
 
 #include <xinu.h>
 
+void test(){
+   char *arr = vmalloc(2048*PAGE_SIZE);
+   printf("test1 %d\n", arr[0]);
+   arr[0] = 1;
+   printf("test2 %d\n", arr[0]);
+}
+
 process	main(void)
 {
-
-	/* Run the Xinu shell */
-
-	recvclr();
-	resume(create(shell, 8192, 50, "shell", 1, CONSOLE));
-
-
-	/* Wait for shell to exit and recreate it */
-
-	while (TRUE) {
-		receive();
-		sleepms(200);
-		kprintf("\n\nMain process recreating shell\n\n");
-		resume(create(shell, 4096, 20, "shell", 1, CONSOLE));
-	}
+   resume(vcreate(test, 4096, 2048, 19, "shell", 0));
+   sleep(10);
 	return OK;
     
 }
