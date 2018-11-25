@@ -13,6 +13,8 @@ void	*maxswap;
 uint32 n_static_pages;
 uint32 n_free_vpages;
 
+pt_t *ptmap[MAX_FSS_SIZE];
+
 /*------------------------------------------------------------------------
  * pdptinit - initialize directory/table free list
  *------------------------------------------------------------------------
@@ -48,7 +50,6 @@ local char *_getfreemem(struct	memblk	*list, uint32 nbytes){
    mask = disable();
    if (nbytes == 0) {
       restore(mask);
-      kprintf("SYSERR: _getfreemem\n");
       return (char *)SYSERR;
    }
 
@@ -75,8 +76,6 @@ local char *_getfreemem(struct	memblk	*list, uint32 nbytes){
          curr = curr->mnext;
       }
    }
-   kprintf("SYSERR2: _getfreemem %d\n", nbytes);
-   halt();
    restore(mask);
    return (char *)SYSERR;
 }
@@ -162,6 +161,16 @@ uint32 getpdptframe(){
 uint32 getffsframe(){
    uint32 frame;
    frame = (uint32)_getfreemem(&ffslist, PAGE_SIZE);
+
+   // Align it
+   frame >>= PAGE_OFFSET_BITS;
+
+   return frame;
+}
+
+uint32 getswapframe(){
+   uint32 frame;
+   frame = (uint32)_getfreemem(&swaplist, PAGE_SIZE);
 
    // Align it
    frame >>= PAGE_OFFSET_BITS;

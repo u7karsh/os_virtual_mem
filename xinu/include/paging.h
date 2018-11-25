@@ -64,7 +64,6 @@ extern uint32 n_free_vpages;
 extern unsigned int error_code;
 
 /* Macros */
-
 #define PAGE_SIZE       4096    /* number of bytes per page		 		 */
 #define PAGE_OFFSET_BITS 12
 #define MAX_HEAP_SIZE   4096    /* max number of frames for virtual heap		 */
@@ -72,5 +71,7 @@ extern unsigned int error_code;
 #define MAX_FSS_SIZE    2048    /* size of FSS space  (in frames)			 */
 #define MAX_PT_SIZE	256	/* size of space used for page tables (in frames)	 */
 #define N_PAGE_ENTRIES 1024
+
+extern pt_t *ptmap[MAX_FSS_SIZE];
 
 #endif

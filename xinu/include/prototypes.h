@@ -618,6 +618,7 @@ extern	syscall	yield(void);
 /* in file paging.c */
 extern	uint32 getpdptframe();
 extern	uint32 getffsframe();
+extern	uint32 getswapframe();
 
 /* in file paging.c */
 extern	syscall	freepdptframe(uint32);
