@@ -56,6 +56,7 @@ pid32	create(
    /* The following is required to support paging */
    prptr->pdbr     = create_directory();
    prptr->hsize    = 0;
+   prptr->vfree    = 0;
 
 	/* Initialize stack as if the process was called		*/
 

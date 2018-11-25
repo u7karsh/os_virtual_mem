@@ -50,6 +50,7 @@ extern	pid32	newpid(void);
 
 /* in file vcreate.c */
 extern	pid32	vcreate(void *, uint32, uint32, pri16, char *, uint32, ...);
+extern void vfree(char *, uint32);
 
 /* in file ctxsw.S */
 extern	void	ctxsw(void *, void *);

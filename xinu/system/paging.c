@@ -8,6 +8,8 @@ void	*minpdpt;
 void	*maxpdpt;
 void	*minffs;
 void	*maxffs;
+void	*minswap;
+void	*maxswap;
 uint32 n_static_pages;
 uint32 n_free_vpages;
 
@@ -55,13 +57,11 @@ local char *_getfreemem(struct	memblk	*list, uint32 nbytes){
    prev = list;
    curr = list->mnext;
    while (curr != NULL) {			/* Search free list	*/
-
       if (curr->mlength == nbytes) {	/* Block is exact match	*/
          prev->mnext = curr->mnext;
          list->mlength -= nbytes;
          restore(mask);
          return (char *)(curr);
-
       } else if (curr->mlength > nbytes) { /* Split big block	*/
          leftover = (struct memblk *)((uint32) curr +	nbytes);
          prev->mnext = leftover;
@@ -343,6 +343,9 @@ void init_paging(){
 
    // Init FFS region
    __init( &ffslist, (char*)((uint32)maxpdpt + 1), PAGE_SIZE * MAX_FSS_SIZE, &minffs, &maxffs );
+
+   // Init swap region
+   __init( &swaplist, (char*)((uint32)maxffs + 1), PAGE_SIZE * MAX_SWAP_SIZE, &minswap, &maxswap );
 
    /* Set interrupt vector for the pagefault to invoke pagefault_handler_disp */
    set_evec(IRQPAGE, (uint32)pagefault_handler_disp);

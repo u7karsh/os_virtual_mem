@@ -57,8 +57,9 @@ pid32	vcreate(
    /* The following is required to support paging */
    prptr->pdbr      = create_directory();
    prptr->hsize     = hsize;
-   n_free_vpages   -= hsize;
    prptr->vmax      = ceil_div(((uint32)minffs), PAGE_SIZE);
+   prptr->vfree     = hsize;
+   n_free_vpages   -= hsize;
 
 	/* Initialize stack as if the process was called		*/
 

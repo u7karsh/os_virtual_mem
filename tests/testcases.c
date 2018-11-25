@@ -1,7 +1,7 @@
 
 #include <xinu.h>
 #define PAGE_SIZE 4096
-//#define TEST1
+#define TEST1
 //#define TEST2
 //#define TEST3
 //#define TEST4

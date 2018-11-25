@@ -11,24 +11,26 @@ char  	*vmalloc(
 	)
 {
 	intmask	mask;			/* Saved interrupt mask		*/
-   uint32 npages;
-   uint32 vaddr;
+   uint32 npages, vaddr, cr3;
    virt_addr_t virt;
-   int i;
-   uint32 cr3;
    pdbr_t pdbr;
    pd_t *dir;
    pt_t *pt;
+	struct procent *prptr;
+   int i;
 
 	mask = disable();
+
+   prptr  = &proctab[getpid()];
    npages = ceil_div( nbytes, PAGE_SIZE );
 
-	if (nbytes == 0 || npages > n_free_vpages) {
+	if (nbytes == 0 || npages > prptr->vfree){
 		restore(mask);
 		return (char *)SYSERR;
 	}
 
-	vaddr          = proctab[getpid()].vmax << PAGE_OFFSET_BITS;
+	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
+
    cr3            = read_cr3();
    pdbr           = *((pdbr_t*)&cr3);
    dir            = (pd_t*)(pdbr.pdbr_base << PAGE_OFFSET_BITS);
@@ -53,11 +55,12 @@ char  	*vmalloc(
       pt[virt.pt_offset].pt_isswapped = 0;	/* for programmer's use		*/
       pt[virt.pt_offset].pt_avail     = 0;	/* for programmer's use		*/
 
-      vaddr      += PAGE_SIZE;
+      vaddr                          += PAGE_SIZE;
    }
 
-	vaddr          = proctab[getpid()].vmax << PAGE_OFFSET_BITS;
-   proctab[getpid()].vmax += npages;
+	vaddr                   = prptr->vmax << PAGE_OFFSET_BITS;
+   prptr->vmax            += npages;
+   prptr->vfree           -= npages;
 
 	restore(mask);
 	return (char*)vaddr;

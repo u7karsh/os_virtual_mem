@@ -52,6 +52,7 @@ struct procent {		/* Entry in the process table		*/
 	umsg32	prmsg;		/* Message sent to this process		*/
    pdbr_t pdbr;
    uint32 hsize;
+   uint32 vfree;
    uint32 vmax;
 	bool8	prhasmsg;	/* Nonzero iff msg is valid		*/
 	int16	prdesc[NDESC];	/* Device descriptors for process	*/

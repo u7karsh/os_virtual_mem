@@ -22,6 +22,7 @@ struct	sentry	semtab[NSEM];	/* Semaphore table			*/
 struct	memblk	memlist;	/* List of free memory blocks		*/
 struct	memblk	pdptlist;	/* Head of PD/PT list	*/
 struct	memblk	ffslist;	/* Head of ffs list	*/
+struct	memblk	swaplist;	/* Head of swap list	*/
 
 /* Active system status */
 
@@ -69,6 +70,7 @@ void	nulluser()
 	sysinit();
 
 	/* Output Xinu memory layout */
+   printmem(swaplist.mnext, "Swap List");
    printmem(ffslist.mnext, "FFS List");
    printmem(pdptlist.mnext, "PD/PT List");
    printmem(memlist.mnext, "Free List");
@@ -196,7 +198,7 @@ static	void	sysinit()
    // Create mappings for:
    // ffs, and swap
    start_page  = (uint32)minffs / PAGE_SIZE;
-   end_page    = ceil_div( ((uint32)maxffs), PAGE_SIZE );
+   end_page    = ceil_div( ((uint32)maxswap), PAGE_SIZE );
    start_dir   = start_page / N_PAGE_ENTRIES;
    end_dir     = ceil_div( end_page, N_PAGE_ENTRIES );
    dir         = (pd_t*)(null_pdbr.pdbr_base << PAGE_OFFSET_BITS);
