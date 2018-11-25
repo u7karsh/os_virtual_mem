@@ -61,6 +61,7 @@ typedef struct {
 
 extern uint32 n_static_pages;
 extern uint32 n_free_vpages;
+extern unsigned int error_code;
 
 /* Macros */
 

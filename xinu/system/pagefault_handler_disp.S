@@ -10,6 +10,8 @@
 pagefault_handler_disp:
 		pushal			# Save registers
 		cli			# Disable further interrupts
+      mov 32(%esp), %eax
+      mov %eax, error_code
 		movb	$EOI,%al	# Reset interrupt
 		outb	%al,$OCW1_2
 
@@ -17,4 +19,5 @@ pagefault_handler_disp:
 
 		sti			# Restore interrupt status
 		popal			# Restore registers
+      add $4, %esp   # skip error code
 		iret			# Return from interrupt
