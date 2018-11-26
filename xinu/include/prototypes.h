@@ -622,9 +622,12 @@ extern	uint32 getswapframe();
 
 /* in file paging.c */
 extern	syscall	freepdptframe(uint32);
+extern	syscall	freeffsframe(uint32);
+extern	syscall	freeswapframe(uint32);
 
 /* in file paging.c */
 extern	void	init_paging(void);
+extern	void	write_pdbr(pdbr_t);
 
 /* in file paging.c */
 extern	pdbr_t	create_directory(void);
@@ -644,6 +647,7 @@ extern void write_cr0(unsigned long);
 extern void write_cr3(unsigned long);
 extern void write_cr4(unsigned long);
 extern void enable_paging();
+extern void disable_paging();
 
 /* NETWORK BYTE ORDER CONVERSION NOT NEEDED ON A BIG-ENDIAN COMPUTER */
 #define	htons(x)  ((0xff & ((x)>>8)) | ((0xff & (x)) << 8))

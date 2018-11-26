@@ -28,7 +28,7 @@ void	pagefault_handler(){
       cr3  = read_cr3();
 
       if( cr2 < (uint32)maxswap ){
-         kprintf("SYSERR: Pagefault on illegal addr range\n");
+         kprintf("SYSERR: Pagefault on illegal addr range %08X %08X\n", cr2, (uint32)maxswap);
          halt();
       }
 
@@ -46,6 +46,7 @@ void	pagefault_handler(){
 
          if( ptP->pt_pres ){
             // TODO: Do nothing if its present bit is set
+            kprintf("SEGMENTATION FAULT (pt_pres) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
             return;
          }
 
@@ -83,8 +84,8 @@ void	pagefault_handler(){
                ptmapindex         = phys_frame - maxpdptframe;
                // If the swapped out page gets a free FFS region, bring it back
                if( ptP->pt_isswapped ){
-                  kprintf("checkpoint reached\n");
                   copy_page(ptP->pt_base, phys_frame, FALSE);
+                  freeswapframe(ptP->pt_base);
                }
             }
 
@@ -120,8 +121,8 @@ local void copy_page(uint32 fromframe, uint32 toframe, bool8 bothways){
    uint32 *fromuint32;
    uint32 *touint32;
 
-   fromuint32           = (uint32*)(fromframe >> PAGE_OFFSET_BITS);
-   touint32             = (uint32*)(toframe >> PAGE_OFFSET_BITS);
+   fromuint32           = (uint32*)(fromframe << PAGE_OFFSET_BITS);
+   touint32             = (uint32*)(toframe << PAGE_OFFSET_BITS);
 
    if( bothways ){
       // Swap the contents

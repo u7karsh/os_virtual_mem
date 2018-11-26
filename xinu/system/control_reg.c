@@ -180,10 +180,13 @@ void write_cr4(unsigned long n) {
  *-------------------------------------------------------------------------
  */
 void enable_paging(){
-  
   unsigned long temp =  read_cr0();
   temp = temp | ( 0x1 << 31 ) | 0x1;
   write_cr0(temp); 
 }
 
-
+void disable_paging(){
+  unsigned long temp =  read_cr0();
+  temp = temp & ~( 0x1 << 31 ) & ~(0x1);
+  write_cr0(temp); 
+}

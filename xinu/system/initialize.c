@@ -214,7 +214,7 @@ static	void	sysinit()
    }
    
    // Create mapping for FFS region and map onto nullproc
-   write_cr3(*((unsigned int*)&null_pdbr));
+   write_pdbr(null_pdbr);
 	
 	/* Initialize process table entries free */
 

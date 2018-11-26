@@ -46,7 +46,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
    // Swap the pdbr of new process so that we can remove
    // directory of killed processes
-   write_cr3(*((unsigned long*)&(ptnew->pdbr)));
+   write_pdbr(ptnew->pdbr);
    if( ptold->prstate == PR_FREE ){
       // Free the directory
       destroy_directory(ptold->pdbr);

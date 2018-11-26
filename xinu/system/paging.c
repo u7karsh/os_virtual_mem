@@ -119,7 +119,6 @@ local syscall	_freemem(
 
    if (((prev != list) && (uint32) block < top)
          || ((next != NULL)	&& (uint32) block+nbytes>(uint32)next)) {
-      kprintf("%d %d %d %d %d\n", prev, list, block, top, next, nbytes);
       restore(mask);
       return SYSERR;
    }
@@ -184,6 +183,16 @@ uint32 getswapframe(){
 syscall freepdptframe(uint32 frame){
    char *blkaddr = (char*)(frame << PAGE_OFFSET_BITS);
    return _freemem(&pdptlist, blkaddr, PAGE_SIZE, minpdpt, maxpdpt);
+}
+
+syscall freeffsframe(uint32 frame){
+   char *blkaddr = (char*)(frame << PAGE_OFFSET_BITS);
+   return _freemem(&ffslist, blkaddr, PAGE_SIZE, minffs, maxffs);
+}
+
+syscall freeswapframe(uint32 frame){
+   char *blkaddr = (char*)(frame << PAGE_OFFSET_BITS);
+   return _freemem(&swaplist, blkaddr, PAGE_SIZE, minswap, maxswap);
 }
 
 pdbr_t create_directory(){
@@ -306,14 +315,20 @@ void print_page(pd_t pd){
 // CTXSW PDBR to null proc to emulate
 // entering kernel mode
 void kernel_mode_enter(){
-   write_cr3( *((uint32*)&(proctab[0].pdbr)) );
+   write_pdbr( proctab[0].pdbr );
 }
 
 // We assume that our kernel is nullproc
 // CTXSW PDBR to curr proc to emulate
 // exiting kernel mode
 void kernel_mode_exit(){
-   write_cr3( *((uint32*)&(proctab[currpid].pdbr)) );
+   write_pdbr( proctab[currpid].pdbr );
+}
+
+void write_pdbr( pdbr_t pdbr ){
+   write_cr3( *((uint32*)&pdbr) );
+   disable_paging();
+   enable_paging();
 }
 
 void print_directory(pdbr_t pdbr){
