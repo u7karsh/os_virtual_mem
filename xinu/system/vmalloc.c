@@ -11,7 +11,7 @@ char  	*vmalloc(
 	)
 {
 	intmask	mask;			/* Saved interrupt mask		*/
-   uint32 npages, vaddr, cr3;
+   uint32 npages, vaddr;
    virt_addr_t virt;
    pdbr_t pdbr;
    pd_t *dir;
@@ -20,6 +20,7 @@ char  	*vmalloc(
    int i;
 
 	mask = disable();
+   kernel_mode_enter();
 
    prptr  = &proctab[getpid()];
    npages = ceil_div( nbytes, PAGE_SIZE );
@@ -31,8 +32,7 @@ char  	*vmalloc(
 
 	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
 
-   cr3            = read_cr3();
-   pdbr           = *((pdbr_t*)&cr3);
+   pdbr           = prptr->pdbr;
    dir            = (pd_t*)(pdbr.pdbr_base << PAGE_OFFSET_BITS);
 
    for(i = 0; i < npages; i++){
@@ -62,6 +62,7 @@ char  	*vmalloc(
    prptr->vmax            += npages;
    prptr->vfree           -= npages;
 
+   kernel_mode_exit();
 	restore(mask);
 	return (char*)vaddr;
 }

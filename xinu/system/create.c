@@ -54,7 +54,9 @@ pid32	create(
 	prptr->prdesc[2] = CONSOLE;
 
    /* The following is required to support paging */
+   kernel_mode_enter();
    prptr->pdbr     = create_directory();
+   kernel_mode_exit();
    prptr->hsize    = 0;
    prptr->vfree    = 0;
 

@@ -15,25 +15,25 @@ local void copy_page(uint32, uint32, bool8);
  *------------------------------------------------------------------------
  */
 void	pagefault_handler(){
-   uint32 cr2, cr3, evict_frame, phys_frame, swapframe, maxpdptframe, ptmapindex;
+   uint32 cr2, evict_frame, phys_frame, swapframe, maxpdptframe, ptmapindex;
    pdbr_t pdbr;
    virt_addr_t virt;
    pd_t *dir;
    pt_t *pt;
    pt_t *ptP;
 
+   kernel_mode_enter();
    if( !(error_code & 0x1) ){
       // Read cr2, and cr3
       cr2  = read_cr2();
-      cr3  = read_cr3();
+      pdbr = proctab[getpid()].pdbr;
 
       if( cr2 < (uint32)maxswap ){
-         kprintf("SYSERR: Pagefault on illegal addr range %08X %08X\n", cr2, (uint32)maxswap);
+         kprintf("SYSERR: Pagefault on illegal addr range %08X %08X %d\n", cr2, (uint32)maxswap, currpid);
          halt();
       }
 
-      // Decode cr2, cr3
-      pdbr = *((pdbr_t*)&cr3);
+      // Decode cr2
       virt = *((virt_addr_t*)&cr2);
 
       // Get the directory corresponding to the faulty page
@@ -45,8 +45,8 @@ void	pagefault_handler(){
          ptP  = &pt[virt.pt_offset];
 
          if( ptP->pt_pres ){
-            // TODO: Do nothing if its present bit is set
             kprintf("SEGMENTATION FAULT (pt_pres) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
+            halt();
             return;
          }
 
@@ -59,7 +59,6 @@ void	pagefault_handler(){
             // 1. Enter priveledged mode
             // 2. Allocate the page
             // 3. Exit priveledged mode
-            kernel_mode_enter();
             phys_frame    = getffsframe();
 
             maxpdptframe  = ceil_div( ((uint32)maxpdpt), PAGE_SIZE );
@@ -96,7 +95,6 @@ void	pagefault_handler(){
             }
 
             ptmap[ptmapindex]     = ptP;
-            kernel_mode_exit();
 
             ptP->pt_base          = phys_frame;
             ptP->pt_pres          = 1;
@@ -113,6 +111,7 @@ void	pagefault_handler(){
          halt();
       }
    }
+   kernel_mode_exit();
 }
 
 local void copy_page(uint32 fromframe, uint32 toframe, bool8 bothways){

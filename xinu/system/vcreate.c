@@ -25,6 +25,7 @@ pid32	vcreate(
 	uint32		*saddr;		/* Stack address		*/
 
 	mask = disable();
+   kernel_mode_enter();
 	if (ssize < MINSTK)
 		ssize = MINSTK;
 	ssize = (uint32) roundmb(ssize);
@@ -100,6 +101,7 @@ pid32	vcreate(
 	*--saddr = 0;			/* %edi */
 
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
+   kernel_mode_exit();
 	restore(mask);
 	return pid;
 }

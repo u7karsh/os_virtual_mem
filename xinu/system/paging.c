@@ -221,10 +221,10 @@ pdbr_t create_directory(){
    }
 
    // Allocate bare minimum pages a.k.a flat mapping
-   npages           = ceil_div( ((uint32)maxpdpt), PAGE_SIZE );
+   npages           = ceil_div( ((uint32)minpdpt), PAGE_SIZE );
    nentries         = ceil_div( npages, N_PAGE_ENTRIES );
    for( i = 0; i < nentries; i++ ){
-      nullproc_share = i != (nentries - 1);
+      nullproc_share = TRUE;
       create_directory_entry((pd_t*)&diruint[i], nullproc_share ? i : -1, i*N_PAGE_ENTRIES, 0, nullproc_share ? N_PAGE_ENTRIES : npages % N_PAGE_ENTRIES);
    }
 
@@ -326,7 +326,8 @@ void kernel_mode_exit(){
 }
 
 void write_pdbr( pdbr_t pdbr ){
-   write_cr3( *((uint32*)&pdbr) );
+   uint32 val = *((uint32*)&pdbr);
+   write_cr3( val );
    disable_paging();
    enable_paging();
 }
