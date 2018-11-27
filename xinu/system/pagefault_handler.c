@@ -1,7 +1,7 @@
 /* pagefault_handler.c - pagefault_handler */
 
 #include <xinu.h>
-#include <stdio.h>
+#include <stdlib.h>
 
 unsigned int error_code;
 
@@ -21,6 +21,9 @@ void	pagefault_handler(){
    pd_t *dir;
    pt_t *pt;
    pt_t *ptP;
+   uint32 cr3;
+
+   cr3 = read_cr3();
 
    kernel_mode_enter();
    if( !(error_code & 0x1) ){
@@ -28,8 +31,9 @@ void	pagefault_handler(){
       cr2  = read_cr2();
       pdbr = proctab[getpid()].pdbr;
 
-      if( cr2 < (uint32)maxswap ){
-         kprintf("SYSERR: Pagefault on illegal addr range %08X %08X %d\n", cr2, (uint32)maxswap, currpid);
+      if( cr2 < (uint32)maxvstack ){
+         kprintf("SYSERR: Pagefault on illegal addr range %08X %08X %d '%s' %08X %08X\n", cr2, (uint32)maxvstack, currpid, proctab[getpid()].prname, cr3, pdbr);
+         //print_directory(pdbr);
          halt();
       }
 

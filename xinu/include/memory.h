@@ -29,6 +29,8 @@ extern	struct	memblk	memlist;	/* Head of free memory list	*/
 extern	struct	memblk	pdptlist;	/* Head of PD/PT list	*/
 extern	struct	memblk	ffslist;	/* Head of ffs list	*/
 extern	struct	memblk	swaplist;	/* Head of swap list	*/
+extern	struct	memblk	vstacklist;	/* Head of virtual stack list	*/
+
 extern	void	*minheap;		/* Start of heap		*/
 extern	void	*maxheap;		/* Highest valid heap address	*/
 extern	void	*maxpdpt;
@@ -37,6 +39,8 @@ extern	void	*maxffs;
 extern	void	*minffs;
 extern	void	*maxswap;
 extern	void	*minswap;
+extern	void	*maxvstack;
+extern	void	*minvstack;
 
 
 /* Added by linker */

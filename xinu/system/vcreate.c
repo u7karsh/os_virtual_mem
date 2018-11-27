@@ -25,12 +25,10 @@ pid32	vcreate(
 	uint32		*saddr;		/* Stack address		*/
 
 	mask = disable();
-   kernel_mode_enter();
 	if (ssize < MINSTK)
 		ssize = MINSTK;
 	ssize = (uint32) roundmb(ssize);
-	if ( (priority < 1) || ((pid=newpid()) == SYSERR) ||
-	     ((saddr = (uint32 *)getstk(ssize)) == (uint32 *)SYSERR) || (hsize > n_free_vpages)) {
+	if ( (priority < 1) || ((pid=newpid()) == SYSERR) || (hsize > n_free_vpages) ) {
 		restore(mask);
 		return SYSERR;
 	}
@@ -41,7 +39,6 @@ pid32	vcreate(
 	/* Initialize process table entry for new process */
 	prptr->prstate = PR_SUSP;	/* Initial state is suspended	*/
 	prptr->prprio = priority;
-	prptr->prstkbase = (char *)saddr;
 	prptr->prstklen = ssize;
 	prptr->prname[PNMLEN-1] = NULLCH;
 	for (i=0 ; i<PNMLEN-1 && (prptr->prname[i]=name[i])!=NULLCH; i++)
@@ -56,14 +53,21 @@ pid32	vcreate(
 	prptr->prdesc[2] = CONSOLE;
 
    /* The following is required to support paging */
+   kernel_mode_enter();
    prptr->pdbr      = create_directory();
+   kernel_mode_exit();
+
    prptr->hsize     = hsize;
-   prptr->vmax      = ceil_div(((uint32)maxswap), PAGE_SIZE);
+   prptr->vmax      = ceil_div(((uint32)maxvstack + 1), PAGE_SIZE);
    prptr->vfree     = hsize;
    n_free_vpages   -= hsize;
 
 	/* Initialize stack as if the process was called		*/
+   //saddr = (uint32 *)getvstk(ssize, pid);
+   saddr = (uint32 *)getstk(ssize);
+   write_pdbr(prptr->pdbr);
 
+	prptr->prstkbase = (char *)saddr;
 	*saddr = STACKMAGIC;
 	savsp = (uint32)saddr;
 
@@ -101,7 +105,7 @@ pid32	vcreate(
 	*--saddr = 0;			/* %edi */
 
 	*pushsp = (unsigned long) (prptr->prstkptr = (char *)saddr);
-   kernel_mode_exit();
+   write_pdbr(proctab[getpid()].pdbr);
 	restore(mask);
 	return pid;
 }

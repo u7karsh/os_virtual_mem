@@ -6,63 +6,37 @@
  *  vmalloc -  Allocate heap storage, returning lowest word address
  *------------------------------------------------------------------------
  */
-char  	*vmalloc(
-	  uint32	nbytes		/* Size of memory requested	*/
-	)
-{
-	intmask	mask;			/* Saved interrupt mask		*/
+char *vmalloc(uint32 nbytes){
    uint32 npages, vaddr;
-   virt_addr_t virt;
-   pdbr_t pdbr;
-   pd_t *dir;
-   pt_t *pt;
-	struct procent *prptr;
-   int i;
+	struct procent *prptr = &proctab[getpid()];
 
-	mask = disable();
-   kernel_mode_enter();
-
-   prptr  = &proctab[getpid()];
-   npages = ceil_div( nbytes, PAGE_SIZE );
+   npages         = ceil_div( nbytes, PAGE_SIZE );
 
 	if (nbytes == 0 || npages > prptr->vfree){
-		restore(mask);
 		return (char *)SYSERR;
 	}
 
+   resume(create(kernel_service_malloc, 1024, prptr->prprio + 1, "malloc", 3, nbytes, FALSE, getpid()));
+
 	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
+   prptr->vmax   += npages;
+   prptr->vfree  -= npages;
+   return (char*)vaddr;
+}
 
-   pdbr           = prptr->pdbr;
-   dir            = (pd_t*)(pdbr.pdbr_base << PAGE_OFFSET_BITS);
+char *getvstk(uint32 nbytes, pid32 pid){
+   uint32 npages, vaddr;
+	struct procent *prptr = &proctab[pid];
 
-   for(i = 0; i < npages; i++){
-      virt        = *((virt_addr_t*)&vaddr);
-      if( !dir[virt.pd_offset].pd_pres ){
-         create_directory_entry(&dir[virt.pd_offset], -1, -1, 0, 0);
-      }
+   npages         = ceil_div( nbytes, PAGE_SIZE );
 
-      pt                              = (pt_t*)(dir[virt.pd_offset].pd_base << PAGE_OFFSET_BITS);
-      pt[virt.pt_offset].pt_pres	     = 0;	/* page is present?		*/
-      pt[virt.pt_offset].pt_write     = 1;	/* page is writable?		*/
-      pt[virt.pt_offset].pt_user	     = 0;	/* is use level protection?	*/
-      pt[virt.pt_offset].pt_pwt	     = 0;	/* write through for this page? */
-      pt[virt.pt_offset].pt_pcd	     = 1;	/* cache disable for this page? */
-      pt[virt.pt_offset].pt_acc	     = 0;	/* page was accessed?		*/
-      pt[virt.pt_offset].pt_dirty     = 0;	/* page was written?		*/
-      pt[virt.pt_offset].pt_mbz	     = 0;	/* must be zero			*/
-      pt[virt.pt_offset].pt_global    = 0;	/* should be zero in 586	*/
-      pt[virt.pt_offset].pt_isvmalloc = 1;	/* for programmer's use		*/
-      pt[virt.pt_offset].pt_isswapped = 0;	/* for programmer's use		*/
-      pt[virt.pt_offset].pt_avail     = 0;	/* for programmer's use		*/
+	if (nbytes == 0){
+		return (char *)SYSERR;
+	}
 
-      vaddr                          += PAGE_SIZE;
-   }
+   resume(create(kernel_service_malloc, 1024, prptr->prprio + 1, "getvstk", 3, nbytes, TRUE, pid));
 
-	vaddr                   = prptr->vmax << PAGE_OFFSET_BITS;
-   prptr->vmax            += npages;
-   prptr->vfree           -= npages;
-
-   kernel_mode_exit();
-	restore(mask);
-	return (char*)vaddr;
+	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
+   prptr->vmax   += npages;
+   return (char*)(vaddr + nbytes - 1);
 }

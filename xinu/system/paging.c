@@ -10,6 +10,9 @@ void	*minffs;
 void	*maxffs;
 void	*minswap;
 void	*maxswap;
+void	*minvstack;
+void	*maxvstack;
+
 uint32 n_static_pages;
 uint32 n_free_vpages;
 
@@ -180,6 +183,16 @@ uint32 getswapframe(){
    return frame;
 }
 
+uint32 getvstackframe(){
+   uint32 frame;
+   frame = (uint32)_getfreemem(&vstacklist, PAGE_SIZE);
+
+   // Align it
+   frame >>= PAGE_OFFSET_BITS;
+
+   return frame;
+}
+
 syscall freepdptframe(uint32 frame){
    char *blkaddr = (char*)(frame << PAGE_OFFSET_BITS);
    return _freemem(&pdptlist, blkaddr, PAGE_SIZE, minpdpt, maxpdpt);
@@ -195,6 +208,11 @@ syscall freeswapframe(uint32 frame){
    return _freemem(&swaplist, blkaddr, PAGE_SIZE, minswap, maxswap);
 }
 
+syscall freevstackframe(uint32 frame){
+   char *blkaddr = (char*)(frame << PAGE_OFFSET_BITS);
+   return _freemem(&vstacklist, blkaddr, PAGE_SIZE, minvstack, maxvstack);
+}
+
 pdbr_t create_directory(){
    pdbr_t pdbr;
    uint32 dirframeno;
@@ -202,7 +220,6 @@ pdbr_t create_directory(){
    uint32 *diruint;
    uint32 npages;
    uint32 nentries;
-   bool8 nullproc_share;
 
    dirframeno      = getpdptframe();
    diruint         = (uint32*)(dirframeno << PAGE_OFFSET_BITS);
@@ -224,8 +241,7 @@ pdbr_t create_directory(){
    npages           = ceil_div( ((uint32)minpdpt), PAGE_SIZE );
    nentries         = ceil_div( npages, N_PAGE_ENTRIES );
    for( i = 0; i < nentries; i++ ){
-      nullproc_share = TRUE;
-      create_directory_entry((pd_t*)&diruint[i], nullproc_share ? i : -1, i*N_PAGE_ENTRIES, 0, nullproc_share ? N_PAGE_ENTRIES : npages % N_PAGE_ENTRIES);
+      create_directory_entry((pd_t*)&diruint[i], i, i*N_PAGE_ENTRIES, 0, N_PAGE_ENTRIES);
    }
 
    n_static_pages  = nentries;
@@ -248,11 +264,6 @@ void create_directory_entry(pd_t *pd, uint32 nullproc_share_index, uint32 phybas
    pd->pd_fmb	     = 0;	/* four MB pages?		*/
    pd->pd_global    = 0;	/* global (ignored)		*/
    pd->pd_avail     = 0;	/* for programmer's use		*/
-
-   if( n_static_pages == -1 && currpid != 0 ){
-      kprintf("SYSERR: n_static_pages is -1 for pid %d\n", currpid);
-      halt();
-   }
 
    pageuint        = (uint32*)((uint32)pd->pd_base << PAGE_OFFSET_BITS);
 
@@ -385,6 +396,9 @@ void init_paging(){
 
    // Init swap region
    __init( &swaplist, (char*)((uint32)maxffs + 1), PAGE_SIZE * MAX_SWAP_SIZE, &minswap, &maxswap );
+
+   // Init virtual stack region
+   __init( &vstacklist, (char*)((uint32)maxswap + 1), PAGE_SIZE * MAX_STACK_SIZE, &minvstack, &maxvstack );
 
    /* Set interrupt vector for the pagefault to invoke pagefault_handler_disp */
    set_evec(IRQPAGE, (uint32)pagefault_handler_disp);

@@ -23,6 +23,7 @@ struct	memblk	memlist;	/* List of free memory blocks		*/
 struct	memblk	pdptlist;	/* Head of PD/PT list	*/
 struct	memblk	ffslist;	/* Head of ffs list	*/
 struct	memblk	swaplist;	/* Head of swap list	*/
+struct	memblk	vstacklist;	/* Head of virtual stack list	*/
 
 /* Active system status */
 
@@ -70,6 +71,7 @@ void	nulluser()
 	sysinit();
 
 	/* Output Xinu memory layout */
+   printmem(vstacklist.mnext, "Virtual Stack");
    printmem(swaplist.mnext, "Swap List");
    printmem(ffslist.mnext, "FFS List");
    printmem(pdptlist.mnext, "PD/PT List");
@@ -162,7 +164,6 @@ static	void	sysinit()
    uint32 start_page, end_page;
    uint32 start_dir, end_dir;
    pd_t *dir;
-   uint32 extend_from;
 
 	/* Reset the console */
 
@@ -198,12 +199,12 @@ static	void	sysinit()
    // Create mappings for:
    // pdpt, ffs, and swap
    start_page  = (uint32)minpdpt / PAGE_SIZE;
-   end_page    = ceil_div( ((uint32)maxswap), PAGE_SIZE );
+   end_page    = ceil_div( ((uint32)maxvstack), PAGE_SIZE );
    start_dir   = start_page / N_PAGE_ENTRIES;
    end_dir     = ceil_div( end_page, N_PAGE_ENTRIES );
    dir         = (pd_t*)(null_pdbr.pdbr_base << PAGE_OFFSET_BITS);
    for(i = start_dir; i <= end_dir; i++){
-      //   // Create a new directory entry
+      // Create a new directory entry by extending the previous one
       create_directory_entry(&dir[i], -1, i*N_PAGE_ENTRIES, 0, N_PAGE_ENTRIES);
    }
    

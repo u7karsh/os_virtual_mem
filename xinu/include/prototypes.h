@@ -619,11 +619,13 @@ extern	syscall	yield(void);
 extern	uint32 getpdptframe();
 extern	uint32 getffsframe();
 extern	uint32 getswapframe();
+extern	uint32 getvstackframe();
 
 /* in file paging.c */
 extern	syscall	freepdptframe(uint32);
 extern	syscall	freeffsframe(uint32);
 extern	syscall	freeswapframe(uint32);
+extern	syscall	freevstackframe(uint32);
 
 /* in file paging.c */
 extern	void	init_paging(void);
@@ -638,6 +640,9 @@ extern void kernel_mode_enter();
 extern void kernel_mode_exit();
 
 extern char  	*vmalloc(uint32);
+
+extern void kernel_service_malloc(uint32, bool8, pid32);
+extern void kernel_service_free(char *, uint32, pid32);
 
 extern unsigned long read_cr0(void);
 extern unsigned long read_cr2(void);

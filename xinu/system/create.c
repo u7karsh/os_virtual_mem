@@ -27,8 +27,7 @@ pid32	create(
 	if (ssize < MINSTK)
 		ssize = MINSTK;
 	ssize = (uint32) roundmb(ssize);
-	if ( (priority < 1) || ((pid=newpid()) == SYSERR) ||
-	     ((saddr = (uint32 *)getstk(ssize)) == (uint32 *)SYSERR) ) {
+	if ( (priority < 1) || ((pid=newpid()) == SYSERR) ){
 		restore(mask);
 		return SYSERR;
 	}
@@ -39,7 +38,6 @@ pid32	create(
 	/* Initialize process table entry for new process */
 	prptr->prstate = PR_SUSP;	/* Initial state is suspended	*/
 	prptr->prprio = priority;
-	prptr->prstkbase = (char *)saddr;
 	prptr->prstklen = ssize;
 	prptr->prname[PNMLEN-1] = NULLCH;
 	for (i=0 ; i<PNMLEN-1 && (prptr->prname[i]=name[i])!=NULLCH; i++)
@@ -54,14 +52,15 @@ pid32	create(
 	prptr->prdesc[2] = CONSOLE;
 
    /* The following is required to support paging */
-   kernel_mode_enter();
-   prptr->pdbr     = create_directory();
-   kernel_mode_exit();
+   prptr->pdbr     = proctab[0].pdbr;
    prptr->hsize    = 0;
    prptr->vfree    = 0;
 
 	/* Initialize stack as if the process was called		*/
 
+   saddr = (uint32 *)getstk(ssize);
+
+	prptr->prstkbase = (char *)saddr;
 	*saddr = STACKMAGIC;
 	savsp = (uint32)saddr;
 
