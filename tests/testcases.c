@@ -1,10 +1,10 @@
 
 #include <xinu.h>
 #define PAGE_SIZE 4096
-#define TEST1
+//#define TEST1
 //#define TEST2
 //#define TEST3
-//#define TEST4
+#define TEST4
 //#define TEST5
 //#define TEST6
 //#define TEST7
@@ -62,7 +62,7 @@ void test1(int numPages, int pnum){
         g =  ptr1[i*PAGE_SIZE+4];
         rec = d | e << 8 | f << 16 | g << 24;
         if( c != pnum || rec != i ){
-            kprintf("%d %d %d %d %d %d %d %d\n", pnum, i, c, d, e, f, g, rec);
+            printf("MISMATCH: %d %d %d %d %d %d %d %d\n", pnum, i, c, d, e, f, g, rec);
             error = 1;
             break;
         }

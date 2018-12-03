@@ -17,6 +17,8 @@ uint32 n_static_pages;
 uint32 n_free_vpages;
 
 pt_t *ptmap[MAX_FSS_SIZE];
+pt_t *swap2ffsmap[MAX_SWAP_SIZE];
+uint32 ffs2swapmap[MAX_FSS_SIZE];
 
 /*------------------------------------------------------------------------
  * pdptinit - initialize directory/table free list
@@ -294,20 +296,20 @@ uint32 create_pagetable_entries(uint32 ptbase, uint32 phybaseaddr, uint32 ventry
    pt                 = (pt_t*)(ptbase << PAGE_OFFSET_BITS);
 
    for( i = 0; i < nventries; i++ ){
-      j                  = ventrystart + i;
-      pt[j].pt_pres	    = 1;	/* page is present?		*/
-      pt[j].pt_write     = 1;	/* page is writable?		*/
-      pt[j].pt_user	    = 0;	/* is use level protection?	*/
-      pt[j].pt_pwt	    = 0;	/* write through for this page? */
-      pt[j].pt_pcd	    = 1;	/* cache disable for this page? */
-      pt[j].pt_acc	    = 0;	/* page was accessed?		*/
-      pt[j].pt_dirty     = 0;	/* page was written?		*/
-      pt[j].pt_mbz	    = 0;	/* must be zero			*/
-      pt[j].pt_global    = 0;	/* should be zero in 586	*/
-      pt[j].pt_isvmalloc = 0;	/* for programmer's use		*/
-      pt[j].pt_isswapped = 0;	/* for programmer's use		*/
-      pt[j].pt_avail     = 0;	/* for programmer's use		*/
-      pt[j].pt_base	    = (phybaseaddr + i); /* location of page?		*/
+      j                        = ventrystart + i;
+      pt[j].pt_pres	          = 1;	/* page is present?		*/
+      pt[j].pt_write           = 1;	/* page is writable?		*/
+      pt[j].pt_user	          = 0;	/* is use level protection?	*/
+      pt[j].pt_pwt	          = 0;	/* write through for this page? */
+      pt[j].pt_pcd	          = 1;	/* cache disable for this page? */
+      pt[j].pt_acc	          = 0;	/* page was accessed?		*/
+      pt[j].pt_dirty           = 0;	/* page was written?		*/
+      pt[j].pt_mbz	          = 0;	/* must be zero			*/
+      pt[j].pt_global          = 0;	/* should be zero in 586	*/
+      pt[j].pt_isvmalloc       = 0;	/* for programmer's use		*/
+      pt[j].pt_isswapped       = 0;	/* for programmer's use		*/
+      pt[j].pt_already_swapped = 0;	/* for programmer's use		*/
+      pt[j].pt_base	          = (phybaseaddr + i); /* location of page?		*/
    }
    return ptbase;
 }
@@ -391,7 +393,11 @@ void init_paging(){
    // Init FFS region
    __init( &ffslist, (char*)((uint32)maxpdpt + 1), PAGE_SIZE * MAX_FSS_SIZE, &minffs, &maxffs );
    for( i = 0; i < MAX_FSS_SIZE; i++){
-      ptmap[i] = NULL;
+      ptmap[i]       = NULL;
+      ffs2swapmap[i] = -1;
+   }
+   for( i = 0; i < MAX_SWAP_SIZE; i++){
+      swap2ffsmap[i] = NULL;
    }
 
    // Init swap region
