@@ -216,6 +216,7 @@ local uint32 swap_get_evict_candidate(uint32 cr2){
          return i;
       }
    }
+   printmem(swaplist.mnext, "SWAP OUT:");
    ASSERT(FALSE, "Out of swap memory %d %08X!\n", currpid, cr2);
    return SYSERR;
 }

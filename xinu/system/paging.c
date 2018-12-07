@@ -361,7 +361,7 @@ void destroy_directory(pid32 pid){
    uint32 dirno    = pdbr.pdbr_base;
    pd_t *frame     = (pd_t*)(dirno << PAGE_OFFSET_BITS);
    pt_t *table;
-   virt_addr_t virt_addr;
+   uint32 nstart, npages;
    int i, j;
 
    // Destroy directory IFF user process
@@ -370,19 +370,15 @@ void destroy_directory(pid32 pid){
    // No need to free static pages as they are shared and nullproc
    // allocated them
    // As nullproc will never be freed, no need to free it
-   for( i = n_static_pages; i < N_PAGE_ENTRIES; i++ ){
+   npages  = ceil_div( ((uint32)minffs), PAGE_SIZE );
+   nstart  = ceil_div( npages, N_PAGE_ENTRIES );
+   for( i = nstart; i < N_PAGE_ENTRIES; i++ ){
       if( frame[i].pd_pres ){
          // There is a valid directory entry. Iterate through the page table
          // to free any allocated memory to prevent memory leaks
          table     = (pt_t*)(frame[i].pd_base << PAGE_OFFSET_BITS);
          for( j = 0; j < N_PAGE_ENTRIES; j++ ){
-            if( table[j].pt_pres ){
-               virt_addr.pd_offset = i;
-               virt_addr.pt_offset = j;
-               // Free any physical memory associated with it
-               kernel_service_free(*((uint32*)&virt_addr), PAGE_SIZE, pid);
-               ASSERT( !table[j].pt_pres, "Inconsistency in free at destroy\n" );
-            }
+            ASSERT( !table[j].pt_pres, "Inconsistency in free at destroy\n" );
          }
          // Free the table
          ASSERT( freepdptframe(frame[i].pd_base) != SYSERR, "Unable to free PD/PT frame %08X\n", frame[i]);
@@ -392,6 +388,45 @@ void destroy_directory(pid32 pid){
    // Free directory
    ASSERT(freepdptframe(dirno) != SYSERR, "Unable to free PD/PT directory");
 }
+
+void freevmem(pid32 pid){
+   pdbr_t pdbr     = proctab[pid].pdbr;
+   uint32 dirno    = pdbr.pdbr_base;
+   pd_t *frame     = (pd_t*)(dirno << PAGE_OFFSET_BITS);
+   pt_t *table;
+   virt_addr_t virt_addr;
+   uint32 npages, nstart, addr;
+   int i, j;
+
+   // Destroy directory IFF user process
+   if(!proctab[pid].pruser) return;
+
+   // No need to free static pages as they are shared and nullproc
+   // allocated them
+   npages  = ceil_div( ((uint32)minffs), PAGE_SIZE );
+   nstart  = ceil_div( npages, N_PAGE_ENTRIES );
+   // As nullproc will never be freed, no need to free it
+   for( i = nstart; i < N_PAGE_ENTRIES; i++ ){
+      if( frame[i].pd_pres ){
+         // There is a valid directory entry. Iterate through the page table
+         // to free any allocated memory to prevent memory leaks
+         table     = (pt_t*)(frame[i].pd_base << PAGE_OFFSET_BITS);
+         for( j = 0; j < N_PAGE_ENTRIES; j++ ){
+            if( table[j].pt_pres || table[j].pt_isswapped ){
+               virt_addr.pd_offset = i;
+               virt_addr.pt_offset = j;
+               addr = *((uint32*)&virt_addr);
+               // Free any physical memory associated with it
+               free_vpage(frame, addr >> PAGE_OFFSET_BITS, FALSE);
+               ASSERT( !table[j].pt_pres, "Inconsistency in free at freevmem\n" );
+            }
+         }
+      }
+   }
+   n_free_vpages += proctab[pid].hsize - proctab[pid].vfree;
+   ASSERT( n_free_vpages >= 0 && n_free_vpages <= MAX_HEAP_SIZE, "Illegal value of n_free_vpages (=%d)\n", n_free_vpages );
+}
+
 
 void init_paging(){
    int i;

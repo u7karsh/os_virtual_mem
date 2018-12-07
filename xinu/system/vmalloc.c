@@ -16,12 +16,9 @@ char *vmalloc(uint32 nbytes){
 		return (char *)SYSERR;
 	}
 
+	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
    resume(create(kernel_service_malloc, 1024, prptr->prprio + 1, "malloc", 3, nbytes, FALSE, getpid()));
 
-	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
-   prptr->vmax   += npages;
-   prptr->vfree  -= npages;
-   n_free_vpages -= npages;
    return (char*)vaddr;
 }
 
@@ -39,5 +36,6 @@ char *getvstk(uint32 nbytes, pid32 pid){
 
 	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
    prptr->vmax   += npages;
+
    return (char*)(vaddr + nbytes - 1);
 }

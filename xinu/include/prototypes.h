@@ -640,6 +640,8 @@ extern void kernel_mode_enter();
 extern void kernel_mode_exit();
 
 extern char  	*vmalloc(uint32);
+extern void freevmem(pid32);
+extern void free_vpage(pd_t *dir, uint32 i, bool8);
 
 extern void kernel_service_malloc(uint32, bool8, pid32);
 extern void kernel_service_free(char *, uint32, pid32);
