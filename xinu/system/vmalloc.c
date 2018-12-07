@@ -12,7 +12,7 @@ char *vmalloc(uint32 nbytes){
 
    npages         = ceil_div( nbytes, PAGE_SIZE );
 
-	if (nbytes == 0 || npages > prptr->vfree){
+	if (nbytes == 0 || npages > prptr->vfree || npages > n_free_vpages){
 		return (char *)SYSERR;
 	}
 
@@ -21,6 +21,7 @@ char *vmalloc(uint32 nbytes){
 	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
    prptr->vmax   += npages;
    prptr->vfree  -= npages;
+   n_free_vpages -= npages;
    return (char*)vaddr;
 }
 

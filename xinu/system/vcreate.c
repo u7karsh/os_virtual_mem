@@ -28,7 +28,7 @@ pid32	vcreate(
 	if (ssize < MINSTK)
 		ssize = MINSTK;
 	ssize = (uint32) roundmb(ssize);
-	if ( (priority < 1) || ((pid=newpid()) == SYSERR) || (hsize > n_free_vpages) ) {
+	if ( (priority < 1) || ((pid=newpid()) == SYSERR) || (hsize > MAX_HEAP_SIZE) ) {
 		restore(mask);
 		return SYSERR;
 	}
@@ -46,6 +46,7 @@ pid32	vcreate(
 	prptr->prsem = -1;
 	prptr->prparent = (pid32)getpid();
 	prptr->prhasmsg = FALSE;
+	prptr->pruser   = TRUE;
 
 	/* Set up stdin, stdout, and stderr descriptors for the shell	*/
 	prptr->prdesc[0] = CONSOLE;
@@ -60,7 +61,6 @@ pid32	vcreate(
    prptr->hsize     = hsize;
    prptr->vmax      = ceil_div(((uint32)maxvstack + 1), PAGE_SIZE);
    prptr->vfree     = hsize;
-   n_free_vpages   -= hsize;
 
 	/* Initialize stack as if the process was called		*/
    //saddr = (uint32 *)getvstk(ssize, pid);

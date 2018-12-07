@@ -12,6 +12,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 {
 	struct procent *ptold;	/* Ptr to table entry for old process	*/
 	struct procent *ptnew;	/* Ptr to table entry for new process	*/
+   pid32 oldpid;
 
 	/* If rescheduling is deferred, record attempt and return */
 
@@ -23,6 +24,7 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 	/* Point to process table entry for the current (old) process */
 
 	ptold = &proctab[currpid];
+   oldpid = currpid;
 
 	if (ptold->prstate == PR_CURR) {  /* Process remains eligible */
 		if (ptold->prprio > firstkey(readylist)) {
@@ -45,12 +47,12 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
    // Swap the pdbr of new process so that we can remove
    // directory of killed processes
    write_pdbr(ptnew->pdbr);
-   //if( ptold->prstate == PR_FREE ){
-   //   // Free the directory
-   //   kernel_mode_enter();
-   //   destroy_directory(ptold->pdbr);
-   //   kernel_mode_exit();
-   //}
+   if( ptold->prstate == PR_FREE ){
+      // Free the directory
+      kernel_mode_enter();
+      destroy_directory(oldpid);
+      kernel_mode_exit();
+   }
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
 
 	/* Old process returns here when resumed */

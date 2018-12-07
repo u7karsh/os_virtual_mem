@@ -100,6 +100,9 @@ void kernel_service_free(char *ptr, uint32 nbytes, pid32 pid){
          if(!pt[virt.pt_offset].pt_isvmalloc){
             ffsframe   = pt[virt.pt_offset].pt_base;
             freeffsframe( ffsframe );
+            // As an ffs frame is being freed, we should clear the mapping of this page
+            // to page table
+            ptmap[ffsframe-maxpdptframe] = NULL;
             if(pt[virt.pt_offset].pt_already_swapped){
                // There is an entry in swap that needs to be freed
                ASSERT( ffs2swapmap[ffsframe-maxpdptframe] != -1, "Illegal ffs2swapmap mapping in vfree\n" );

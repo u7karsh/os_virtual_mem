@@ -54,7 +54,7 @@ syscall	kill(
 		prptr->prstate = PR_FREE;
 	}
 
-   destroy_directory(prptr->pdbr);
+   destroy_directory(pid);
 	restore(mask);
 	return OK;
 }

@@ -633,7 +633,7 @@ extern	void	write_pdbr(pdbr_t);
 
 /* in file paging.c */
 extern	pdbr_t	create_directory(void);
-extern	void     destroy_directory(pdbr_t);
+extern	void     destroy_directory(pid32);
 extern   uint32 create_pagetable_entries(uint32, uint32, uint32, uint32);
 extern void create_directory_entry(pd_t *, uint32, uint32, uint32, uint32);
 extern void kernel_mode_enter();
