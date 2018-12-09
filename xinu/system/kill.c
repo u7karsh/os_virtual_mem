@@ -25,9 +25,9 @@ syscall	kill(
 		xdone();
 	}
 
-   kernel_mode_enter();
-   freevmem(pid);
-   kernel_mode_exit();
+   //kernel_mode_enter();
+   //freevmem(pid);
+   //kernel_mode_exit();
 
 	send(prptr->prparent, pid);
 	for (i=0; i<3; i++) {
@@ -58,9 +58,9 @@ syscall	kill(
 		prptr->prstate = PR_FREE;
 	}
 
-   kernel_mode_enter();
-   destroy_directory(pid);
-   kernel_mode_exit();
+   //kernel_mode_enter();
+   //destroy_directory(pid);
+   //kernel_mode_exit();
 	restore(mask);
 	return OK;
 }

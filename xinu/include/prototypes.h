@@ -53,7 +53,7 @@ extern	pid32	vcreate(void *, uint32, uint32, pri16, char *, uint32, ...);
 extern void vfree(char *, uint32);
 
 /* in file ctxsw.S */
-extern	void	ctxsw(void *, void *);
+extern	void	ctxsw(void *, void *, pdbr_t);
 
 /* in file dhcp.c */
 extern	uint32	getlocalip(void);
@@ -636,8 +636,6 @@ extern	pdbr_t	create_directory(void);
 extern	void     destroy_directory(pid32);
 extern   uint32 create_pagetable_entries(uint32, uint32, uint32, uint32);
 extern void create_directory_entry(pd_t *, uint32, uint32, uint32, uint32);
-extern void kernel_mode_enter();
-extern void kernel_mode_exit();
 
 extern char  	*vmalloc(uint32);
 extern void freevmem(pid32);

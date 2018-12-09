@@ -83,4 +83,26 @@ extern pt_t *ptmap[MAX_FSS_SIZE];
 extern uint32 ffs2swapmap[MAX_FSS_SIZE];
 extern pt_t *swap2ffsmap[MAX_SWAP_SIZE];
 
+extern long kernel_sp_space[1024];
+extern long kernel_sp;
+extern long kernel_sp_old;
+
+
+// We assume that our kernel is nullproc
+// CTXSW PDBR to null proc to emulate
+// entering kernel mode
+#define kernel_mode_enter(){ \
+   asm("movl %esp, kernel_sp_old"); \
+   asm("movl kernel_sp, %esp"); \
+   write_pdbr( proctab[0].pdbr ); \
+}
+
+// We assume that our kernel is nullproc
+// CTXSW PDBR to curr proc to emulate
+// exiting kernel mode
+#define kernel_mode_exit(){ \
+   write_pdbr( proctab[currpid].pdbr ); \
+   asm("movl kernel_sp_old, %esp"); \
+}
+
 #endif

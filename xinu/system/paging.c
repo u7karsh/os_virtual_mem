@@ -20,6 +20,10 @@ pt_t *ptmap[MAX_FSS_SIZE];
 pt_t *swap2ffsmap[MAX_SWAP_SIZE];
 uint32 ffs2swapmap[MAX_FSS_SIZE];
 
+long kernel_sp_space[1024];
+long kernel_sp = &kernel_sp_space[1000];
+long kernel_sp_old;
+
 /*------------------------------------------------------------------------
  * pdptinit - initialize directory/table free list
  *------------------------------------------------------------------------
@@ -322,20 +326,6 @@ void print_page(pd_t pd){
          kprintf("        %08d: 0x%08X\n", i, page[i]);
       }
    }
-}
-
-// We assume that our kernel is nullproc
-// CTXSW PDBR to null proc to emulate
-// entering kernel mode
-void kernel_mode_enter(){
-   write_pdbr( proctab[0].pdbr );
-}
-
-// We assume that our kernel is nullproc
-// CTXSW PDBR to curr proc to emulate
-// exiting kernel mode
-void kernel_mode_exit(){
-   write_pdbr( proctab[currpid].pdbr );
 }
 
 void write_pdbr( pdbr_t pdbr ){

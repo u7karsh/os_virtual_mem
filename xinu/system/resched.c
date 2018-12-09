@@ -3,6 +3,9 @@
 #include <xinu.h>
 
 struct	defer	Defer;
+struct procent *ptold;	/* Ptr to table entry for old process	*/
+struct procent *ptnew;	/* Ptr to table entry for new process	*/
+pid32 oldpid;
 
 /*------------------------------------------------------------------------
  *  resched  -  Reschedule processor to highest priority eligible process
@@ -10,10 +13,6 @@ struct	defer	Defer;
  */
 void	resched(void)		/* Assumes interrupts are disabled	*/
 {
-	struct procent *ptold;	/* Ptr to table entry for old process	*/
-	struct procent *ptnew;	/* Ptr to table entry for new process	*/
-   pid32 oldpid;
-
 	/* If rescheduling is deferred, record attempt and return */
 
 	if (Defer.ndefers > 0) {
@@ -46,14 +45,13 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
 
    // Swap the pdbr of new process so that we can remove
    // directory of killed processes
-   write_pdbr(ptnew->pdbr);
    if( ptold->prstate == PR_FREE ){
       // Free the directory
-      kernel_mode_enter();
-      destroy_directory(oldpid);
-      kernel_mode_exit();
+      //kernel_mode_enter();
+      //destroy_directory(oldpid);
+      //kernel_mode_exit();
    }
-	ctxsw(&ptold->prstkptr, &ptnew->prstkptr);
+	ctxsw(&ptold->prstkptr, &ptnew->prstkptr, ptnew->pdbr);
 
 	/* Old process returns here when resumed */
 

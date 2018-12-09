@@ -13,6 +13,7 @@ char *vmalloc(uint32 nbytes){
    npages         = ceil_div( nbytes, PAGE_SIZE );
 
 	if (nbytes == 0 || npages > prptr->vfree || npages > n_free_vpages){
+      kprintf("ERR: %d %d %d\n", nbytes, npages, prptr->vfree, n_free_vpages);
 		return (char *)SYSERR;
 	}
 
@@ -32,10 +33,8 @@ char *getvstk(uint32 nbytes, pid32 pid){
 		return (char *)SYSERR;
 	}
 
-   resume(create(kernel_service_malloc, 1024, prptr->prprio + 1, "getvstk", 3, nbytes, TRUE, pid));
-
 	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
-   prptr->vmax   += npages;
+   resume(create(kernel_service_malloc, 1024, prptr->prprio + 1, "getvstk", 3, nbytes, TRUE, pid));
 
    return (char*)(vaddr + nbytes - 1);
 }

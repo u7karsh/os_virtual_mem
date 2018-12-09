@@ -19,10 +19,7 @@ void kernel_service_malloc(uint32 nbytes, bool8 is_stack, pid32 pid){
    prptr  = &proctab[pid];
    npages = ceil_div( nbytes, PAGE_SIZE );
 
-	if (nbytes == 0 || (!is_stack && (npages > prptr->vfree))){
-      kprintf("SYSERR: kernel_service_malloc\n");
-      halt();
-	}
+	ASSERT(!(nbytes == 0 || (!is_stack && (npages > prptr->vfree))), "kernel_service_malloc\n");
 
 	vaddr  = prptr->vmax << PAGE_OFFSET_BITS;
 
@@ -54,8 +51,11 @@ void kernel_service_malloc(uint32 nbytes, bool8 is_stack, pid32 pid){
    }
 
    prptr->vmax   += npages;
-   prptr->vfree  -= npages;
-   n_free_vpages -= npages;
+
+   if( !is_stack ){
+      prptr->vfree  -= npages;
+      n_free_vpages -= npages;
+   }
 
 	restore(mask);
 }

@@ -4,6 +4,13 @@
 #include <stdlib.h>
 
 unsigned int error_code;
+uint32 cr2, evict_frame, phys_frame, swapframe, maxpdptframe, maxffsframe, ptmapindex;
+pdbr_t pdbr;
+virt_addr_t virt;
+pd_t *dir;
+pt_t *pt;
+pt_t *ptP;
+uint32 cr3;
 
 local void copy_page(uint32, uint32, bool8);
 local uint32 swap_get_evict_candidate(uint32);
@@ -16,14 +23,6 @@ local uint32 swap_get_evict_candidate(uint32);
  *------------------------------------------------------------------------
  */
 void	pagefault_handler(){
-   uint32 cr2, evict_frame, phys_frame, swapframe, maxpdptframe, maxffsframe, ptmapindex;
-   pdbr_t pdbr;
-   virt_addr_t virt;
-   pd_t *dir;
-   pt_t *pt;
-   pt_t *ptP;
-   uint32 cr3;
-
    cr3 = read_cr3();
 
    // Make sure no variables are on stack as it can cause issues
@@ -36,10 +35,7 @@ void	pagefault_handler(){
       cr2  = read_cr2();
       pdbr = proctab[getpid()].pdbr;
 
-      if( cr2 < (uint32)maxvstack ){
-         kprintf("SYSERR: Pagefault on illegal addr range %08X %08X %d '%s' %08X %08X\n", cr2, (uint32)maxvstack, currpid, proctab[getpid()].prname, cr3, pdbr);
-         halt();
-      }
+      ASSERT( cr2 > (uint32)maxvstack, "Pagefault on illegal addr range %08X %08X %d '%s' %08X %08X\n", cr2, (uint32)maxvstack, currpid, proctab[getpid()].prname, cr3, pdbr);
 
       // Decode cr2
       virt = *((virt_addr_t*)&cr2);
@@ -52,11 +48,7 @@ void	pagefault_handler(){
          pt   = (pt_t*)(dir[virt.pd_offset].pd_base << PAGE_OFFSET_BITS);
          ptP  = &pt[virt.pt_offset];
 
-         if( ptP->pt_pres ){
-            kprintf("SEGMENTATION FAULT (pt_pres) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
-            halt();
-            return;
-         }
+         ASSERT( !ptP->pt_pres, "SEGMENTATION FAULT (pt_pres) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
 
          // Handle the fault IFF it was given a virtual addr
          if( ptP->pt_isvmalloc || ptP->pt_isswapped ){
@@ -172,13 +164,11 @@ void	pagefault_handler(){
             ptP->pt_dirty         = 0;
          } else{
             // Segfault
-            kprintf("SEGMENTATION FAULT (!isvmalloc && !isswapped) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
-            halt();
+            ASSERT(FALSE, "SEGMENTATION FAULT (!isvmalloc && !isswapped) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
          }
       } else{
          // Segfault
-         kprintf("SEGMENTATION FAULT (!pdpres) %08X %08X %d\n", cr2, read_cr3(), currpid);
-         halt();
+         ASSERT(FALSE, "SEGMENTATION FAULT (!pdpres) %08X %08X %d\n", cr2, read_cr3(), currpid);
       }
    }
    kernel_mode_exit();
