@@ -34,7 +34,7 @@ char *getvstk(uint32 nbytes, pid32 pid){
 	}
 
 	vaddr          = prptr->vmax << PAGE_OFFSET_BITS;
-   resume(create(kernel_service_malloc, 1024, prptr->prprio + 1, "getvstk", 3, nbytes, TRUE, pid));
+   resume(create(kernel_service_malloc, 1024, proctab[getpid()].prprio + 1, "getvstk", 3, nbytes, TRUE, pid));
 
-   return (char*)(vaddr + nbytes - 1);
+   return (char*)(vaddr + nbytes - sizeof(uint32));
 }

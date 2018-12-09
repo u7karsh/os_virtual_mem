@@ -35,6 +35,7 @@ void	pagefault_handler(){
       cr2  = read_cr2();
       pdbr = proctab[getpid()].pdbr;
 
+      ASSERT( cr3 == *((uint32*)&proctab[getpid()].pdbr), "Mismatch cr3 and pdbr %08X != %08X for proc %d\n", cr3, pdbr, getpid() );
       ASSERT( cr2 > (uint32)maxvstack, "Pagefault on illegal addr range %08X %08X %d '%s' %08X %08X\n", cr2, (uint32)maxvstack, currpid, proctab[getpid()].prname, cr3, pdbr);
 
       // Decode cr2
@@ -48,7 +49,7 @@ void	pagefault_handler(){
          pt   = (pt_t*)(dir[virt.pd_offset].pd_base << PAGE_OFFSET_BITS);
          ptP  = &pt[virt.pt_offset];
 
-         ASSERT( !ptP->pt_pres, "SEGMENTATION FAULT (pt_pres) %08X %08X %08X %d\n", cr2, read_cr3(), *ptP, currpid);
+         ASSERT( !ptP->pt_pres, "SEGMENTATION FAULT (pt_pres) %08X %08X %08X %d %d\n", cr2, read_cr3(), *ptP, currpid, error_code);
 
          // Handle the fault IFF it was given a virtual addr
          if( ptP->pt_isvmalloc || ptP->pt_isswapped ){

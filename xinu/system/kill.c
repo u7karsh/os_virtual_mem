@@ -29,7 +29,10 @@ syscall	kill(
    //freevmem(pid);
    //kernel_mode_exit();
 
-	send(prptr->prparent, pid);
+   // Utkarsh: Quick fix to reveive inconsistency in testcases
+   if( prptr->pruser ){
+      send(prptr->prparent, pid);
+   }
 	for (i=0; i<3; i++) {
 		close(prptr->prdesc[i]);
 	}

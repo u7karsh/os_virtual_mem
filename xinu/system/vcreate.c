@@ -2,6 +2,14 @@
 
 #include <xinu.h>
 
+uint32		savsp, *pushsp;
+intmask 	mask;    	/* Interrupt mask		*/
+pid32		pid;		/* Stores new process id	*/
+struct	procent	*prptr;		/* Pointer to proc. table entry */
+int32		i;
+uint32		*a;		/* Points to list of args	*/
+uint32		*saddr;		/* Stack address		*/
+
 /*------------------------------------------------------------------------
  *  create  -  Create a process to start running a function on x86
  *------------------------------------------------------------------------
@@ -16,14 +24,6 @@ pid32	vcreate(
       ...
       )
 {
-   uint32		savsp, *pushsp;
-   intmask 	mask;    	/* Interrupt mask		*/
-   pid32		pid;		/* Stores new process id	*/
-   struct	procent	*prptr;		/* Pointer to proc. table entry */
-   int32		i;
-   uint32		*a;		/* Points to list of args	*/
-   uint32		*saddr;		/* Stack address		*/
-
    mask = disable();
    if (ssize < MINSTK)
       ssize = MINSTK;

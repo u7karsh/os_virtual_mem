@@ -70,7 +70,7 @@ void test1(int numPages, int pnum){
     if (i!=numPages) error=1;
 
     //vfree for test case 1, 2, 3 and 4
-    //vfree((char*)ptr1, numPages*PAGE_SIZE);
+    vfree((char*)ptr1, numPages*PAGE_SIZE);
     err[pnum]=error;
     //kprintf("\nAX\n");
 }
@@ -182,12 +182,12 @@ void test4_run(void){
  * */
 void test5_run(void){
     int error;
+    init_err_arr();
     pid32 p1 = vcreate(test1, 2000, 2048, 10, "P1", 2, 2048, 0);
     resume(p1);
     // wait for the first process to be finished
     receive();
 
-    init_err_arr();
     pid32 p2 = vcreate(test1, 2000, 2048, 10, "P2", 2, 2048, 0);
     resume(p2);
     // wait for the second process to be finished
@@ -204,13 +204,12 @@ void test5_run(void){
 /*Test 6: // The same as Test 5, but this time we exhaust Disk Space, so just use 4096 as the heapsize.*/
 void test6_run(void){
     int error;
+    init_err_arr();
     pid32 p1 = vcreate(test1, 2000, 4096, 10, "P1", 2, 4096, 0);
     resume(p1);
     // wait for the first process to be finished
     receive();
 
-
-    init_err_arr();
     pid32 p2 = vcreate(test1, 2000, 4096, 10, "P2", 2, 4096, 0);
     resume(p2);
     // wait for the second process to be finished

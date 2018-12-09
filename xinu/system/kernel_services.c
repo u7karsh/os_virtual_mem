@@ -115,10 +115,7 @@ void kernel_service_free(char *ptr, uint32 nbytes, pid32 pid){
    start_page = (uint32)ptr / PAGE_SIZE;
    end_page   = ceil_div( (((uint32)ptr) + nbytes - 1), PAGE_SIZE);
 
-	if (nbytes == 0){
-      kprintf("SYSERR: kernel_service_free\n");
-      halt();
-	}
+	ASSERT( nbytes != 0, "kernel_service_free\n");
 
    pdbr          = prptr->pdbr;
    dir           = (pd_t*)(pdbr.pdbr_base << PAGE_OFFSET_BITS);
