@@ -47,9 +47,9 @@ void	resched(void)		/* Assumes interrupts are disabled	*/
    // directory of killed processes
    if( ptold->prstate == PR_FREE ){
       // Free the directory
-      //kernel_mode_enter();
-      //destroy_directory(oldpid);
-      //kernel_mode_exit();
+      kernel_mode_enter();
+      destroy_directory(oldpid);
+      kernel_mode_exit();
    }
 	ctxsw(&ptold->prstkptr, &ptnew->prstkptr, ptnew->pdbr);
 

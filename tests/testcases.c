@@ -35,37 +35,51 @@ void test1(int numPages, int pnum){
     int error = 0;
     unsigned char *ptr1 = NULL;
     ptr1 = (unsigned char*)vmalloc(numPages * PAGE_SIZE);
-    int i=0;
+    int i=0,j;
 
-    // write data
-    for(i =0; i<numPages; ++i){
-        ptr1[i*PAGE_SIZE]     = pnum;
-        ptr1[i*PAGE_SIZE + 1] = i & 0xFF;
-        ptr1[i*PAGE_SIZE + 2] = (i >> 8) & 0xFF;
-        ptr1[i*PAGE_SIZE + 3] = (i >> 16) & 0xFF;
-        ptr1[i*PAGE_SIZE + 4] = (i >> 24) & 0xFF;
-    }
+    for( j = 0; j < 101; j++ ){
+       // write data
+       for(i =0; i<numPages; ++i){
+          ptr1[i*PAGE_SIZE]     = pnum;
+          ptr1[i*PAGE_SIZE + 1] = i & 0xFF;
+          ptr1[i*PAGE_SIZE + 2] = (i >> 8) & 0xFF;
+          ptr1[i*PAGE_SIZE + 3] = (i >> 16) & 0xFF;
+          ptr1[i*PAGE_SIZE + 4] = (i >> 24) & 0xFF;
+       }
 
-    // read data
-    unsigned char c = 0;
-    unsigned char d = 0;
-    unsigned char e = 0;
-    unsigned char f = 0;
-    unsigned char g = 0;
-    int rec;
-    i=0;
-    for(i=0; i<numPages; ++i){
-        c =  ptr1[i*PAGE_SIZE];
-        d =  ptr1[i*PAGE_SIZE+1];
-        e =  ptr1[i*PAGE_SIZE+2];
-        f =  ptr1[i*PAGE_SIZE+3];
-        g =  ptr1[i*PAGE_SIZE+4];
-        rec = d | e << 8 | f << 16 | g << 24;
-        if( c != pnum || rec != i ){
-            printf("MISMATCH: %d %d %d %d %d %d %d %d\n", pnum, i, c, d, e, f, g, rec);
-            error = 1;
-            break;
-        }
+       if( rand() % 100 == 0 ){
+          yield();
+       } else{
+          sleepms(1+(rand()%256));
+       }
+
+       // read data
+       unsigned char c = 0;
+       unsigned char d = 0;
+       unsigned char e = 0;
+       unsigned char f = 0;
+       unsigned char g = 0;
+       int rec;
+       i=0;
+       for(i=0; i<numPages; ++i){
+          c =  ptr1[i*PAGE_SIZE];
+          d =  ptr1[i*PAGE_SIZE+1];
+          e =  ptr1[i*PAGE_SIZE+2];
+          f =  ptr1[i*PAGE_SIZE+3];
+          g =  ptr1[i*PAGE_SIZE+4];
+          rec = d | e << 8 | f << 16 | g << 24;
+          if( c != pnum || rec != i ){
+             printf("MISMATCH: %d %d %d %d %d %d %d %d\n", pnum, i, c, d, e, f, g, rec);
+             error = 1;
+             break;
+          }
+       }
+
+       if( rand() % 100 == 0 ){
+          yield();
+       } else{
+          sleepms(1+(rand()%256));
+       }
     }
     if (i!=numPages) error=1;
 

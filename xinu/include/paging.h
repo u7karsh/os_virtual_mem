@@ -67,7 +67,7 @@ extern unsigned int error_code;
 #define PAGE_SIZE       4096    /* number of bytes per page		 		 */
 #define PAGE_OFFSET_BITS 12
 #define MAX_HEAP_SIZE   4096    /* max number of frames for virtual heap		 */
-#define MAX_SWAP_SIZE   4096 /* size of swap space (in frames) 			 */
+#define MAX_SWAP_SIZE   2049 /* size of swap space (in frames) 			 */
 #define MAX_FSS_SIZE    2048    /* size of FSS space  (in frames)			 */
 #define MAX_STACK_SIZE    2048    /* size of virtual stack space  (in frames)			 */
 #define MAX_PT_SIZE	256	/* size of space used for page tables (in frames)	 */

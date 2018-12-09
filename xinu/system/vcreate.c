@@ -9,6 +9,9 @@ struct	procent	*prptr;		/* Pointer to proc. table entry */
 int32		i;
 uint32		*a;		/* Points to list of args	*/
 uint32		*saddr;		/* Stack address		*/
+uint32   _nargs;
+void    *_funcaddr;
+uint32  arg_container[1024];
 
 /*------------------------------------------------------------------------
  *  create  -  Create a process to start running a function on x86
@@ -63,9 +66,22 @@ pid32	vcreate(
    prptr->vmax      = ceil_div(((uint32)maxvstack + 1), PAGE_SIZE);
    prptr->vfree     = hsize;
 
+   // Stash everything to safe location before changing pdbr
+   _funcaddr        = funcaddr;
+   _nargs           = nargs;
+   a = (uint32 *)(&nargs + 1);	/* Start of args		*/
+   a += nargs -1;			/* Last argument		*/
+   i = 0;
+   for ( ; nargs > 0 ; nargs--){	/* Machine dependent; copy args	*/
+      arg_container[i] = *a--;	/* onto created process's stack	*/
+      i++;
+   }
+
    /* Initialize stack as if the process was called		*/
    saddr = (uint32 *)getvstk(ssize, pid);
    //saddr = (uint32 *)getstk(ssize);
+   
+   // ------------ POINT OF NO RETURN -------------------
    write_pdbr(prptr->pdbr);
 
    prptr->prstkbase = (char *)saddr;
@@ -73,17 +89,19 @@ pid32	vcreate(
    savsp = (uint32)saddr;
 
    /* Push arguments */
-   a = (uint32 *)(&nargs + 1);	/* Start of args		*/
-   a += nargs -1;			/* Last argument		*/
-   for ( ; nargs > 0 ; nargs--)	/* Machine dependent; copy args	*/
-      *--saddr = *a--;	/* onto created process's stack	*/
+   i = 0;
+   for ( ; _nargs > 0 ; _nargs--){	/* Machine dependent; copy args	*/
+      *--saddr = arg_container[i];	/* onto created process's stack	*/
+      i++;
+   }
+
    *--saddr = (long)INITRET;	/* Push on return address	*/
 
    /* The following entries on the stack must match what ctxsw	*/
    /*   expects a saved process state to contain: ret address,	*/
    /*   ebp, interrupt mask, flags, registers, and an old SP	*/
 
-   *--saddr = (long)funcaddr;	/* Make the stack look like it's*/
+   *--saddr = (long)_funcaddr;	/* Make the stack look like it's*/
    /*   half-way through a call to	*/
    /*   ctxsw that "returns" to the*/
    /*   new process		*/
