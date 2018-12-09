@@ -70,7 +70,7 @@ void test1(int numPages, int pnum){
     if (i!=numPages) error=1;
 
     //vfree for test case 1, 2, 3 and 4
-    vfree((char*)ptr1, numPages*PAGE_SIZE);
+    //vfree((char*)ptr1, numPages*PAGE_SIZE);
     err[pnum]=error;
     //kprintf("\nAX\n");
 }

@@ -189,6 +189,7 @@ uint32 getswapframe(){
 uint32 getvstackframe(){
    uint32 frame;
    frame = (uint32)_getfreemem(&vstacklist, PAGE_SIZE);
+   ASSERT( frame != SYSERR, "Out of virtual stack memory!" );
 
    // Align it
    frame >>= PAGE_OFFSET_BITS;

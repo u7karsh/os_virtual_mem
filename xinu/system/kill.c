@@ -2,68 +2,80 @@
 
 #include <xinu.h>
 
+pid32 _pid;
+uint16 _prstate;
+sid32 _prsem;
+intmask	_mask;			/* Saved interrupt mask		*/
+bool8 _pruser;
+pid32 _prparent;
+
 /*------------------------------------------------------------------------
  *  kill  -  Kill a process and remove it from the system
  *------------------------------------------------------------------------
  */
 syscall	kill(
-	  pid32		pid		/* ID of process to kill	*/
-	)
+      pid32		pid		/* ID of process to kill	*/
+      )
 {
-	intmask	mask;			/* Saved interrupt mask		*/
-	struct	procent *prptr;		/* Ptr to process's table entry	*/
-	int32	i;			/* Index into descriptors	*/
+   struct	procent *prptr;		/* Ptr to process's table entry	*/
+   int32	i;			/* Index into descriptors	*/
 
-	mask = disable();
-	if (isbadpid(pid) || (pid == NULLPROC)
-	    || ((prptr = &proctab[pid])->prstate) == PR_FREE) {
-		restore(mask);
-		return SYSERR;
-	}
-
-	if (--prcount <= 1) {		/* Last user process completes	*/
-		xdone();
-	}
-
-   //kernel_mode_enter();
-   //freevmem(pid);
-   //kernel_mode_exit();
-
-   // Utkarsh: Quick fix to reveive inconsistency in testcases
-   if( prptr->pruser ){
-      send(prptr->prparent, pid);
+   _mask = disable();
+   if (isbadpid(pid) || (pid == NULLPROC)
+         || ((prptr = &proctab[pid])->prstate) == PR_FREE) {
+      restore(_mask);
+      return SYSERR;
    }
-	for (i=0; i<3; i++) {
-		close(prptr->prdesc[i]);
-	}
-	freestk(prptr->prstkbase, prptr->prstklen);
 
-	switch (prptr->prstate) {
-	case PR_CURR:
-		prptr->prstate = PR_FREE;	/* Suicide */
-		resched();
+   if (--prcount <= 1) {		/* Last user process completes	*/
+      xdone();
+   }
 
-	case PR_SLEEP:
-	case PR_RECTIM:
-		unsleep(pid);
-		prptr->prstate = PR_FREE;
-		break;
+   for (i=0; i<3; i++) {
+      close(prptr->prdesc[i]);
+   }
+   freestk(prptr->prstkbase, prptr->prstklen);
 
-	case PR_WAIT:
-		semtab[prptr->prsem].scount++;
-		/* Fall through */
+   _prstate  = prptr->prstate;
+   _prsem    = prptr->prsem;
+   _pruser   = prptr->pruser;
+   _prparent = prptr->prparent;
+   _pid      = pid;
 
-	case PR_READY:
-		getitem(pid);		/* Remove from queue */
-		/* Fall through */
+   prptr->prstate = PR_FREE;
 
-	default:
-		prptr->prstate = PR_FREE;
-	}
+   // Switch to protected mode/stack
+   kernel_mode_enter();
+   freevmem(_pid);
 
-   //kernel_mode_enter();
-   //destroy_directory(pid);
-   //kernel_mode_exit();
-	restore(mask);
-	return OK;
+   // Utkarsh: Quick fix for receive inconsistency in testcases
+   if( _pruser ){
+      send(_prparent, _pid);
+   }
+
+   switch (_prstate) {
+      case PR_CURR:
+         resched();
+
+      case PR_SLEEP:
+      case PR_RECTIM:
+         unsleep(_pid);
+         break;
+
+      case PR_WAIT:
+         semtab[_prsem].scount++;
+         /* Fall through */
+
+      case PR_READY:
+         getitem(_pid);		/* Remove from queue */
+         /* Fall through */
+
+      default:
+         break;
+   }
+
+   destroy_directory(_pid);
+   kernel_mode_exit();
+   restore(_mask);
+   return OK;
 }

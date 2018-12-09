@@ -42,7 +42,7 @@ void kernel_service_malloc(uint32 nbytes, bool8 is_stack, pid32 pid){
       pt[virt.pt_offset].pt_dirty            = 0;	/* page was written?		*/
       pt[virt.pt_offset].pt_mbz	            = 0;	/* must be zero			*/
       pt[virt.pt_offset].pt_global           = 0;	/* should be zero in 586	*/
-      pt[virt.pt_offset].pt_isvmalloc        = 1;	/* for programmer's use		*/
+      pt[virt.pt_offset].pt_isvmalloc        = !is_stack;	/* for programmer's use		*/
       pt[virt.pt_offset].pt_isswapped        = 0;	/* for programmer's use		*/
       pt[virt.pt_offset].pt_already_swapped  = 0;	/* for programmer's use		*/
       pt[virt.pt_offset].pt_base             = is_stack ? getvstackframe() : 0;
@@ -62,7 +62,7 @@ void kernel_service_malloc(uint32 nbytes, bool8 is_stack, pid32 pid){
 
 void free_vpage(pd_t *dir, uint32 i, bool8 nofail){
    virt_addr_t virt;
-   uint32 curraddr, pd_base, ffsframe, maxpdptframe, maxffsframe, zero = 0;
+   uint32 curraddr, pd_base, frame, maxpdptframe, maxffsframe, zero = 0;
    pt_t *pt;
 
    maxpdptframe  = ceil_div( ((uint32)maxpdpt), PAGE_SIZE );
@@ -77,18 +77,23 @@ void free_vpage(pd_t *dir, uint32 i, bool8 nofail){
 
    if( pt[virt.pt_offset].pt_pres ){
       ASSERT(!pt[virt.pt_offset].pt_isvmalloc, "Illegal value of isvmalloc");
-      ffsframe   = pt[virt.pt_offset].pt_base;
-      freeffsframe( ffsframe );
-      // As an ffs frame is being freed, we should clear the mapping of this page
-      // to page table
-      ptmap[ffsframe-maxpdptframe] = NULL;
-      if(pt[virt.pt_offset].pt_already_swapped){
-         // There is an entry in swap that needs to be freed
-         ASSERT( ffs2swapmap[ffsframe-maxpdptframe] != -1, "Illegal ffs2swapmap mapping in vfree\n" );
-         freeswapframe( ffs2swapmap[ffsframe-maxpdptframe] );
-         swap2ffsmap[ffs2swapmap[ffsframe-maxpdptframe] - maxffsframe] = NULL;
+      frame   = pt[virt.pt_offset].pt_base;
+      // Handle stack separately
+      if( (frame << PAGE_OFFSET_BITS) >= (uint32)minvstack ){
+         freevstackframe(frame);
+      } else{
+         freeffsframe( frame );
+         // As an ffs frame is being freed, we should clear the mapping of this page
+         // to page table
+         ptmap[frame-maxpdptframe] = NULL;
+         if(pt[virt.pt_offset].pt_already_swapped){
+            // There is an entry in swap that needs to be freed
+            ASSERT( ffs2swapmap[frame-maxpdptframe] != -1, "Illegal ffs2swapmap mapping in vfree\n" );
+            freeswapframe( ffs2swapmap[frame-maxpdptframe] );
+            swap2ffsmap[ffs2swapmap[frame-maxpdptframe] - maxffsframe] = NULL;
+         }
+         ffs2swapmap[frame-maxpdptframe] = -1;
       }
-      ffs2swapmap[ffsframe-maxpdptframe] = -1;
    } else if( pt[virt.pt_offset].pt_isswapped ){
       ASSERT( pt[virt.pt_offset].pt_already_swapped, "Illegal state of pt_already_swapped with pt_isswapped in vfree" );
       ASSERT( swap2ffsmap[pt[virt.pt_offset].pt_base - maxffsframe] == NULL, "Non null mapping in swap2ffsmap in vfree\n" );
