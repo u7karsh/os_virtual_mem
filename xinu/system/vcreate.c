@@ -78,8 +78,11 @@ pid32	vcreate(
    }
 
    /* Initialize stack as if the process was called		*/
+#ifdef VSTACK
    saddr = (uint32 *)getvstk(ssize, pid);
-   //saddr = (uint32 *)getstk(ssize);
+#else
+   saddr = (uint32 *)getstk(ssize);
+#endif
    
    // ------------ POINT OF NO RETURN -------------------
    write_pdbr(prptr->pdbr);

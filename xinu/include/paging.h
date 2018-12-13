@@ -63,11 +63,13 @@ extern uint32 n_static_pages;
 extern uint32 n_free_vpages;
 extern unsigned int error_code;
 
+#define VSTACK
+
 /* Macros */
 #define PAGE_SIZE       4096    /* number of bytes per page		 		 */
 #define PAGE_OFFSET_BITS 12
 #define MAX_HEAP_SIZE   4096    /* max number of frames for virtual heap		 */
-#define MAX_SWAP_SIZE   2049 /* size of swap space (in frames) 			 */
+#define MAX_SWAP_SIZE   2048 /* size of swap space (in frames) 			 */
 #define MAX_FSS_SIZE    2048    /* size of FSS space  (in frames)			 */
 #define MAX_STACK_SIZE    2048    /* size of virtual stack space  (in frames)			 */
 #define MAX_PT_SIZE	256	/* size of space used for page tables (in frames)	 */
@@ -91,18 +93,30 @@ extern long kernel_sp_old;
 // We assume that our kernel is nullproc
 // CTXSW PDBR to null proc to emulate
 // entering kernel mode
-#define kernel_mode_enter(){ \
-   asm("movl %esp, kernel_sp_old"); \
-   asm("movl kernel_sp, %esp"); \
-   write_pdbr( proctab[0].pdbr ); \
-}
+#ifdef VSTACK
+   #define kernel_mode_enter(){ \
+      asm("movl %esp, kernel_sp_old"); \
+      asm("movl kernel_sp, %esp"); \
+      write_pdbr( proctab[0].pdbr ); \
+   }
+#else
+   #define kernel_mode_enter(){ \
+      write_pdbr( proctab[0].pdbr ); \
+   }
+#endif
 
 // We assume that our kernel is nullproc
 // CTXSW PDBR to curr proc to emulate
 // exiting kernel mode
-#define kernel_mode_exit(){ \
-   write_pdbr( proctab[currpid].pdbr ); \
-   asm("movl kernel_sp_old, %esp"); \
-}
+#ifdef VSTACK
+   #define kernel_mode_exit(){ \
+      write_pdbr( proctab[currpid].pdbr ); \
+      asm("movl kernel_sp_old, %esp"); \
+   }
+#else
+   #define kernel_mode_exit(){ \
+      write_pdbr( proctab[currpid].pdbr ); \
+   }
+#endif
 
 #endif

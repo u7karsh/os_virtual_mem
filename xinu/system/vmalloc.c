@@ -24,10 +24,8 @@ char *vmalloc(uint32 nbytes){
 }
 
 char *getvstk(uint32 nbytes, pid32 pid){
-   uint32 npages, vaddr;
+   uint32 vaddr;
 	struct procent *prptr = &proctab[pid];
-
-   npages         = ceil_div( nbytes, PAGE_SIZE );
 
 	if (nbytes == 0){
 		return (char *)SYSERR;

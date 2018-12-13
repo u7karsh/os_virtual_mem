@@ -138,6 +138,7 @@ extern	syscall	getprio(pid32);
 
 /* in file getstk.c */
 extern	char	*getstk(uint32);
+extern	char	*getvstk(uint32, pid32);
 
 /* in file gettime.c */
 extern	status	gettime(uint32 *);

@@ -10,7 +10,9 @@ virt_addr_t virt;
 pd_t *dir;
 pt_t *pt;
 pt_t *ptP;
+pt_t *tmpPtP;
 uint32 cr3;
+bool8 inplace;
 
 local void copy_page(uint32, uint32, bool8);
 local uint32 swap_get_evict_candidate(uint32);
@@ -24,6 +26,7 @@ local uint32 swap_get_evict_candidate(uint32);
  */
 void	pagefault_handler(){
    cr3 = read_cr3();
+   inplace = FALSE;
 
    // Make sure no variables are on stack as it can cause issues
    // during virtual stack scenario
@@ -95,13 +98,22 @@ void	pagefault_handler(){
                      //  (ii). Remove pt_already_swapped from the 
                      //        evicted frame
                      swapframe               = swap_get_evict_candidate(cr2);
-                     swap2ffsmap[swapframe]
-                        ->pt_already_swapped = 0;
+                     if( swapframe == SYSERR ){
+                        ASSERT(ptP->pt_isswapped, "Out of swappable memory!\n");
+                        swapframe            = ptP->pt_base - maxffsframe;
+                        inplace              = TRUE;
+                        tmpPtP               = ptP;
+                     } else{
+                        tmpPtP               = swap2ffsmap[swapframe];
+                     }
+
+                     tmpPtP->pt_already_swapped = 0;
                      // Setting dirty so that page can be written back to 
                      // memory if every evicted
-                     swap2ffsmap[swapframe]
-                        ->pt_dirty           = 1;
-                     ffs2swapmap[swap2ffsmap[swapframe]->pt_base - maxpdptframe] = -1;
+                     tmpPtP->pt_dirty           = 1;
+                     if( !inplace ){
+                        ffs2swapmap[tmpPtP->pt_base - maxpdptframe] = -1;
+                     }
                      swapframe              += maxffsframe;
                   }
                }
@@ -119,13 +131,13 @@ void	pagefault_handler(){
                ptmap[ptmapindex]->pt_isswapped = 1;
                ptmap[ptmapindex]->pt_already_swapped = 1;
                if( ptmap[ptmapindex]->pt_dirty || ptP->pt_isswapped ){
-                  copy_page(evict_frame, swapframe, FALSE);
+                  copy_page(evict_frame, swapframe, inplace);
                }
                ptmap[ptmapindex]->pt_dirty     = 0;
 
                // The page being accessed right now is present in swap memory
                // bring it back
-               if( ptP->pt_isswapped ){
+               if( ptP->pt_isswapped && !inplace ){
                   ASSERT( ptP->pt_already_swapped, "Illegal pt_already_swapped when page is swapped\n" );
                   // A frame is being brought back to FFS
                   // Create mappings
@@ -207,7 +219,5 @@ local uint32 swap_get_evict_candidate(uint32 cr2){
          return i;
       }
    }
-   printmem(swaplist.mnext, "SWAP OUT:");
-   ASSERT(FALSE, "Out of swap memory %d %08X!\n", currpid, cr2);
    return SYSERR;
 }
